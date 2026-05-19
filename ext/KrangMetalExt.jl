@@ -2,6 +2,8 @@ module KrangMetalExt
 using Krang
 using Metal
 
+Krang.has_metal() = true
+
 @inline _complex_inv(z::ComplexF32) = conj(z) / abs2(z)
 @inline _complex_cbrt(z::ComplexF32) = abs(z)^(1f0/3) * cis(angle(z) / 3f0)
 

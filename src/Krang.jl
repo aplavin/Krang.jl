@@ -11,6 +11,9 @@ using Rotations
                                          $(DOCSTRING)
                                          """
 
+# True iff KrangMetalExt is loaded; gate CPU-only code (e.g. `@warn`) so the rest of the function can compile to Metal.
+has_metal(_...) = false
+
 include("metrics/AbstractMetric.jl")
 include("metrics/Kerr/Kerr.jl")
 include("cameras/camera_types.jl")
