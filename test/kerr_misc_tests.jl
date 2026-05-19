@@ -18,6 +18,16 @@
         (-6.0 + 0im, 0.0 + 0im, 3.0 + 0im, 3.0 + 0im),
     ) ≈ 0.0 atol = 1e-5
 
+    @testset "_isreal2 near-zero roots" begin
+        # Schwarzschild r=0 root: ~3e-15 + 3e-15·i, must classify real.
+        ηv = η(ssmet, 0.0, 50.0, π/3)
+        λv = λ(ssmet, 0.0, π/3)
+        roots = Krang.get_radial_roots(ssmet, ηv, λv)
+        @test sum(Krang._isreal2, roots) == 4
+        pix = Krang.SlowLightIntensityPixel(ssmet, 0.0, 50.0, π/3)
+        @test isfinite(pix.I0_inf)
+    end
+
 
     @testset "Radial Integrals 1" begin
         a = 0.99

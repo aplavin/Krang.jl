@@ -15,13 +15,12 @@ export λ,
 
 
 """
-Checks if a complex number is real to some tolerance
+Checks if a complex number is real to within √eps of its own magnitude
+(or √eps absolute, whichever is larger).
 """
-function _isreal2(num) 
-    ren, imn = reim(num)
-    ren2 = ren^2
-    imn2 = imn^2
-    return Base.:&(1, (imn2 / (imn2 + ren2))  < eps(real(num)))
+function _isreal2(num)
+    T = real(typeof(num))
+    abs2(imag(num)) <= eps(T) * max(abs2(num), one(T))
 end
 
 """
