@@ -28,13 +28,13 @@ include("materials/ElectronSynchrotronPowerLawIntensity.jl")
 include("schemes/schemes.jl")
 include("schemes/RayTrace.jl")
 
-function generate_rays!() 
+function generate_rays!()
     @warn "Requires Kernel Abstractions"
 end
-function generate_rays() 
+function generate_rays()
     @warn "Requires Kernel Abstractions"
 end
-function render!() 
+function render!()
     @warn "Requires Kernel Abstractions"
 end
 end

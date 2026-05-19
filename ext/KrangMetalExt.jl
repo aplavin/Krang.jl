@@ -3,7 +3,7 @@ using Krang
 using Metal
 
 @inline _complex_inv(z::ComplexF32) = conj(z) / abs2(z)
-@inline _complex_cbrt(z::ComplexF32) = abs(z)^(1f0/3) * cis(angle(z) / 3f0)
+@inline _complex_cbrt(z::ComplexF32) = abs(z)^(1.0f0/3) * cis(angle(z) / 3.0f0)
 
 @inline function _argmax_real3(x1, x2, x3)
     if real(x1) >= real(x2)

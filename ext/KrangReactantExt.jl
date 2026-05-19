@@ -8,7 +8,7 @@ import Reactant: TracedRNumber
 
 
 types = (TracedRNumber, Any)
-Ts = Union{TracedRNumber, Any}
+Ts = Union{TracedRNumber,Any}
 _isreal2 = Krang._isreal2
 Ir_inf = Krang.Ir_inf
 horizon = Krang.horizon
@@ -22,7 +22,7 @@ It_inf_case4 = Krang.It_inf_case4
 radial_inf_integrals_case2 = Krang.radial_inf_integrals_case2
 radial_inf_integrals_case3 = Krang.radial_inf_integrals_case3
 radial_inf_integrals_case4 = Krang.radial_inf_integrals_case4
-radial_w_I0_terms_integrals_case2 = Krang.radial_w_I0_terms_integrals_case2 
+radial_w_I0_terms_integrals_case2 = Krang.radial_w_I0_terms_integrals_case2
 radial_w_I0_terms_integrals_case3 = Krang.radial_w_I0_terms_integrals_case3
 radial_w_I0_terms_integrals_case4 = Krang.radial_w_I0_terms_integrals_case4
 _get_root_diffs = Krang._get_root_diffs
@@ -66,13 +66,14 @@ function _regularize_equal(x, y, ::Type{T}) where {T}
 end
 
 @inline function _argmax_real3(x1, x2, x3)
-    return Base.ifelse(real(x1) >= real(x2),
+    return Base.ifelse(
+        real(x1) >= real(x2),
         Base.ifelse(real(x1) >= real(x3), x1, x3),
-        Base.ifelse(real(x2) >= real(x3), x2, x3)
+        Base.ifelse(real(x2) >= real(x3), x2, x3),
     )
 end
 
-Reactant.@reactant_overlay function Krang.get_radial_roots(metric::Krang.Kerr, η, λ) 
+Reactant.@reactant_overlay function Krang.get_radial_roots(metric::Krang.Kerr, η, λ)
     a = metric.spin
     TT = typeof(a)
     a2 = a * a
@@ -87,8 +88,8 @@ Reactant.@reactant_overlay function Krang.get_radial_roots(metric::Krang.Kerr, �
     Δ3 = -TT(4) * P * P * P - TT(27) * Q * Q
     ωp = (-Q / TT(2) + sqrt(-Δ3 / TT(108)) + zero(TT)im)^(TT(1 / 3))
 
-    
-    C1 =(complex(-TT(1 / 2), TT(√3 / 2))) * ωp
+
+    C1 = (complex(-TT(1 / 2), TT(√3 / 2))) * ωp
     C2 = (complex(-TT(1 / 2), - TT(√3 / 2))) * ωp
     C3 = (complex(one(TT), zero(TT))) * ωp
     V1 = -P / (TT(3) * C1)
@@ -109,9 +110,14 @@ Reactant.@reactant_overlay function Krang.get_radial_roots(metric::Krang.Kerr, �
     r3 = (sqrtξ02 - det2) / 2
     r4 = (sqrtξ02 + det2) / 2
 
-    numreals = sum(_isreal2, (r1,r2,r3,r4)) 
+    numreals = sum(_isreal2, (r1, r2, r3, r4))
     check = (numreals == 2) & (abs(imag(r4)) < sqrt(eps(TT)))
-    return NTuple{4, typeof(r1)}((r1, Base.ifelse(check, r4, r2), Base.ifelse(check, r2, r3), Base.ifelse(check, r3, r4)))
+    return NTuple{4,typeof(r1)}((
+        r1,
+        Base.ifelse(check, r4, r2),
+        Base.ifelse(check, r2, r3),
+        Base.ifelse(check, r3, r4),
+    ))
 end
 
 #for (ηT, λT) in Iterators.product(types, types)
@@ -148,7 +154,7 @@ Reactant.@reactant_overlay function Krang.Ir_s(metric::Krang.Kerr, rs, roots, ν
     func1 = Krang.Ir_s_case1_and_2
     func2 = Krang.Ir_s_case3
     func3 = Krang.Ir_s_case4
-    numreals = sum(_isreal2, roots) 
+    numreals = sum(_isreal2, roots)
     result = roots[1]
     Reactant.@trace if numreals == 4
         result = func1(metric, rs, Base.real.(roots), νr)
@@ -160,7 +166,12 @@ Reactant.@reactant_overlay function Krang.Ir_s(metric::Krang.Kerr, rs, roots, ν
     return result
 end
 
-Reactant.@reactant_overlay function Krang.Ir_s_case1_and_2(metric::Krang.Kerr, rs, roots, νr)
+Reactant.@reactant_overlay function Krang.Ir_s_case1_and_2(
+    metric::Krang.Kerr,
+    rs,
+    roots,
+    νr,
+)
     TT = typeof(metric.spin)
     _, _, r3, r4 = roots
     _, r31, r32, r41, r42, _ = Krang._get_root_diffs(roots...)
@@ -186,7 +197,11 @@ Reactant.@reactant_overlay function Krang.Iϕ_inf(metric::Krang.Kerr, roots, λ)
     return result
 end
 
-Reactant.@reactant_overlay function Krang.Iϕ_inf_case2(metric::Krang.Kerr, roots::NTuple{4,<:TracedRNumber}, λ)
+Reactant.@reactant_overlay function Krang.Iϕ_inf_case2(
+    metric::Krang.Kerr,
+    roots::NTuple{4,<:TracedRNumber},
+    λ,
+)
     TT = typeof(metric.spin)
     _, _, r3, r4 = roots
     _, r31, r32, r41, r42, r43 = Krang._get_root_diffs(roots...)
@@ -216,7 +231,11 @@ Reactant.@reactant_overlay function Krang.Iϕ_inf_case2(metric::Krang.Kerr, root
            ((rp - a * λ / 2) * Ipo_inf_m_I0_terms - (rm - a * λ / 2) * Imo_inf_m_I0_terms)
 end
 
-Reactant.@reactant_overlay function Krang.Iϕ_inf_case3(metric::Krang.Kerr, roots::NTuple{4,<:TracedRNumber}, λ)
+Reactant.@reactant_overlay function Krang.Iϕ_inf_case3(
+    metric::Krang.Kerr,
+    roots::NTuple{4,<:TracedRNumber},
+    λ,
+)
     TT = typeof(metric.spin)
     r1, r2, _, _ = roots
     r21, r31, r32, r41, r42, _ = _get_root_diffs(roots...)
@@ -251,16 +270,22 @@ Reactant.@reactant_overlay function Krang.Iϕ_inf_case3(metric::Krang.Kerr, root
             R1p_o = R1(αp, φ_o, k3)
             R1m_o = R1(αm, φ_o, k3)
 
-            Ip = -inv(B * rp2 + A * rp1) * (2 * r21 * √(A * B) / (B * rp2 - A * rp1) * R1p_o)
-            Im = -inv(B * rm2 + A * rm1) * (2 * r21 * √(A * B) / (B * rm2 - A * rm1) * R1m_o)
+            Ip =
+                -inv(B * rp2 + A * rp1) * (2 * r21 * √(A * B) / (B * rp2 - A * rp1) * R1p_o)
+            Im =
+                -inv(B * rm2 + A * rm1) * (2 * r21 * √(A * B) / (B * rm2 - A * rm1) * R1m_o)
 
             ans = 2a / (rp - rm) * ((rp - a * λ / 2) * Ip - (rm - a * λ / 2) * Im)
         end
     end
-    return ans 
+    return ans
 end
 
-Reactant.@reactant_overlay function Krang.Iϕ_inf_case4(metric::Krang.Kerr, roots::NTuple{4,<:TracedRNumber}, λ)
+Reactant.@reactant_overlay function Krang.Iϕ_inf_case4(
+    metric::Krang.Kerr,
+    roots::NTuple{4,<:TracedRNumber},
+    λ,
+)
     TT = typeof(metric.spin)
     _, r2, _, r4 = roots
     a = metric.spin
@@ -290,18 +315,24 @@ Reactant.@reactant_overlay function Krang.Iϕ_inf_case4(metric::Krang.Kerr, root
         S1p_o = S1(gp, TT(Base.pi / 2) + atan(go), k4)
         S1m_o = S1(gm, TT(Base.pi / 2) + atan(go), k4)
 
-        Ip = go / (a2r * (1 - go * x4_p)) *
-             (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1p_o)
-        Im = go / (a2r * (1 - go * x4_m)) *
-             (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1m_o)
+        Ip =
+            go / (a2r * (1 - go * x4_p)) *
+            (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1p_o)
+        Im =
+            go / (a2r * (1 - go * x4_m)) *
+            (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1m_o)
 
         result = 2a / (rp - rm) * ((rp - a * λ / 2) * Ip - (rm - a * λ / 2) * Im)
     end
     return result
 end
 
-Reactant.@reactant_overlay function Krang.It_inf(metric::Krang.Kerr, roots::NTuple{4,<:TracedRNumber}, λ)
-    numreals = sum(_isreal2, roots) 
+Reactant.@reactant_overlay function Krang.It_inf(
+    metric::Krang.Kerr,
+    roots::NTuple{4,<:TracedRNumber},
+    λ,
+)
+    numreals = sum(_isreal2, roots)
     result = λ
     Reactant.@trace if numreals == 4
         result = It_inf_case2(metric, real.(roots), λ)
@@ -313,7 +344,11 @@ Reactant.@reactant_overlay function Krang.It_inf(metric::Krang.Kerr, roots::NTup
     return result
 end
 
-Reactant.@reactant_overlay function Krang.It_inf_case2(metric::Krang.Kerr, roots::NTuple{4,<:TracedRNumber}, λ)
+Reactant.@reactant_overlay function Krang.It_inf_case2(
+    metric::Krang.Kerr,
+    roots::NTuple{4,<:TracedRNumber},
+    λ,
+)
     TT = typeof(metric.spin)
     _, _, r3, r4 = roots
     _, r31, r32, r41, r42, _ = Krang._get_root_diffs(roots...)
@@ -332,7 +367,8 @@ Reactant.@reactant_overlay function Krang.It_inf_case2(metric::Krang.Kerr, roots
     coef = 2 / √(r31 * r42)
     n = abs(r41 / r31)
     E_o = √(r31 * r42) * _ellE(asin(x2_o), k)
-    I1_total = log(16 / (r31 + r42)^2) / 2 + r43 * (coef * regularized_Pi(n, asin(inv(√n)), k))
+    I1_total =
+        log(16 / (r31 + r42)^2) / 2 + r43 * (coef * regularized_Pi(n, asin(inv(√n)), k))
     I2_total = r3 - E_o
 
     coef_p = 2 / √(r31 * r42) * r43 / (rp3 * rp4)
@@ -344,13 +380,19 @@ Reactant.@reactant_overlay function Krang.It_inf_case2(metric::Krang.Kerr, roots
     Ip_total = -Πp_o
     Im_total = -Πm_o
 
-    return -(4 / (rp - rm) *
-             (rp * (rp - a * λ / 2) * Ip_total - rm * (rm - a * λ / 2) * Im_total) +
-             2 * I1_total +
-             I2_total)
+    return -(
+        4 / (rp - rm) *
+        (rp * (rp - a * λ / 2) * Ip_total - rm * (rm - a * λ / 2) * Im_total) +
+        2 * I1_total +
+        I2_total
+    )
 end
 
-Reactant.@reactant_overlay function Krang.It_inf_case3(metric::Krang.Kerr, roots::NTuple{4,<:TracedRNumber}, λ)
+Reactant.@reactant_overlay function Krang.It_inf_case3(
+    metric::Krang.Kerr,
+    roots::NTuple{4,<:TracedRNumber},
+    λ,
+)
     TT = typeof(metric.spin)
     r1, r2, _, _ = roots
     r21, r31, r32, r41, r42, _ = Krang._get_root_diffs(roots...)
@@ -388,21 +430,29 @@ Reactant.@reactant_overlay function Krang.It_inf_case3(metric::Krang.Kerr, roots
 
             I1_total = Π1_o + log(16 * r21^2 / ((A2 - B2)^2 + 4 * A * B * r21^2)) / 2
             I2_total = (-√(A * B) * Π2_o) + (B * r2 + A * r1) / (A + B)
-            Ip_total = -inv(B * rp2 + A * rp1) *
-                       (2 * r21 * √(A * B) / (B * rp2 - A * rp1) * R1(αp, φ_o, k3))
-            Im_total = -inv(B * rm2 + A * rm1) *
-                       (2 * r21 * √(A * B) / (B * rm2 - A * rm1) * R1(αm, φ_o, k3))
+            Ip_total =
+                -inv(B * rp2 + A * rp1) *
+                (2 * r21 * √(A * B) / (B * rp2 - A * rp1) * R1(αp, φ_o, k3))
+            Im_total =
+                -inv(B * rm2 + A * rm1) *
+                (2 * r21 * √(A * B) / (B * rm2 - A * rm1) * R1(αm, φ_o, k3))
 
-            result = -(4 / (rp - rm) *
-                       (rp * (rp - a * λ / 2) * Ip_total - rm * (rm - a * λ / 2) * Im_total) +
-                       2 * I1_total +
-                       I2_total)
+            result = -(
+                4 / (rp - rm) *
+                (rp * (rp - a * λ / 2) * Ip_total - rm * (rm - a * λ / 2) * Im_total) +
+                2 * I1_total +
+                I2_total
+            )
         end
     end
     return result
 end
 
-Reactant.@reactant_overlay function Krang.It_inf_case4(metric::Krang.Kerr, roots::NTuple{4,<:TracedRNumber}, λ)
+Reactant.@reactant_overlay function Krang.It_inf_case4(
+    metric::Krang.Kerr,
+    roots::NTuple{4,<:TracedRNumber},
+    λ,
+)
     TT = typeof(metric.spin)
     a = metric.spin
     _, r2, _, r4 = roots
@@ -432,29 +482,43 @@ Reactant.@reactant_overlay function Krang.It_inf_case4(metric::Krang.Kerr, roots
         S1p_o = S1(gp, TT(Base.pi / 2) + atan(go), k4)
         S1m_o = S1(gm, TT(Base.pi / 2) + atan(go), k4)
 
-        Π1_o = 2 / (C + D) * (a2r / go * (1 + go^2)) * regularizedS1(go, TT(Base.pi / 2) + atan(go), k4)
-        Π2_o = 2 / (C + D) * (a2r / go * (1 + go^2))^2 * regularizedS2(go, TT(Base.pi / 2) + atan(go), k4)
+        Π1_o =
+            2 / (C + D) *
+            (a2r / go * (1 + go^2)) *
+            regularizedS1(go, TT(Base.pi / 2) + atan(go), k4)
+        Π2_o =
+            2 / (C + D) *
+            (a2r / go * (1 + go^2))^2 *
+            regularizedS2(go, TT(Base.pi / 2) + atan(go), k4)
 
-        I1_total = -Π1_o + 1 / 2 * log(
-            (16 * (1 + go^2 - sqrt((1 + go^2) * (1 + go^2 - k4))) * (1 + go^2 - k4)) /
-            ((C + D)^2 * ((1 + go^2)^2 - k4) * k4 * (1 + sqrt(1 - k4 / (1 + go^2))))
+        I1_total =
+            -Π1_o +
+            1 / 2 * log(
+                (16 * (1 + go^2 - sqrt((1 + go^2) * (1 + go^2 - k4))) * (1 + go^2 - k4)) /
+                ((C + D)^2 * ((1 + go^2)^2 - k4) * k4 * (1 + sqrt(1 - k4 / (1 + go^2)))),
+            )
+
+        I2_total =
+            -2(a2r / go - b1) * Π1_o + Π2_o - (
+                (
+                    16 * a2r^4 + (C^2 - D^2)^2 - 8 * (a2r^2) * (C^2 + D^2) +
+                    8 * (a2r^3) * (C + D - 2 * b1 * go) +
+                    2 * a2r * (C + D) * (-(C - D)^2 + 2 * b1 * (C + D) * go)
+                ) / (4 * a2r * (4 * a2r^2 - (C + D)^2) * go)
+            )
+        Ip_total =
+            go / (a2r * (1 - go * x4_p)) *
+            (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1p_o)
+        Im_total =
+            go / (a2r * (1 - go * x4_m)) *
+            (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1m_o)
+
+        result = -(
+            4 / (rp - rm) *
+            (rp * (rp - a * λ / 2) * Ip_total - rm * (rm - a * λ / 2) * Im_total) +
+            2 * I1_total +
+            I2_total
         )
-
-        I2_total = -2(a2r / go - b1) * Π1_o + Π2_o - (
-            (16 * a2r^4 + (C^2 - D^2)^2 - 8 * (a2r^2) * (C^2 + D^2) +
-             8 * (a2r^3) * (C + D - 2 * b1 * go) +
-             2 * a2r * (C + D) * (-(C - D)^2 + 2 * b1 * (C + D) * go)) /
-            (4 * a2r * (4 * a2r^2 - (C + D)^2) * go)
-        )
-        Ip_total = go / (a2r * (1 - go * x4_p)) *
-                   (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1p_o)
-        Im_total = go / (a2r * (1 - go * x4_m)) *
-                   (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1m_o)
-
-        result = -(4 / (rp - rm) *
-                   (rp * (rp - a * λ / 2) * Ip_total - rm * (rm - a * λ / 2) * Im_total) +
-                   2 * I1_total +
-                   I2_total)
     end
     return result
 end
@@ -464,7 +528,7 @@ Reactant.@reactant_overlay function Krang.radial_inf_integrals(met::Krang.Kerr, 
     func1 = radial_inf_integrals_case2
     func2 = radial_inf_integrals_case3
     func3 = radial_inf_integrals_case4
-    numreals = sum(_isreal2, roots) 
+    numreals = sum(_isreal2, roots)
     Reactant.@trace if numreals == 4
         result = func1(met, roots)
     elseif numreals == 2
@@ -475,7 +539,10 @@ Reactant.@reactant_overlay function Krang.radial_inf_integrals(met::Krang.Kerr, 
     return result
 end
 
-Reactant.@reactant_overlay function Krang.radial_inf_integrals_case2(metric::Krang.Kerr, roots)
+Reactant.@reactant_overlay function Krang.radial_inf_integrals_case2(
+    metric::Krang.Kerr,
+    roots,
+)
     TT = typeof(metric.spin)
     roots = real.(roots)
     _, _, r3, r4 = roots
@@ -496,7 +563,8 @@ Reactant.@reactant_overlay function Krang.radial_inf_integrals_case2(metric::Kra
     n = abs(r41 / r31)
     E_o = √(r31 * r42) * _ellE(asin(x2_o), k)
 
-    I1o_m_I0_terms = log(16 / (r31 + r42)^2) / 2 + r43 * (coef * regularized_Pi(n, asin(inv(√n)), k))
+    I1o_m_I0_terms =
+        log(16 / (r31 + r42)^2) / 2 + r43 * (coef * regularized_Pi(n, asin(inv(√n)), k))
     I2o_m_I0_terms = r3 - E_o
 
     coef_p = 2 / √(r31 * r42) * r43 / (rp3 * rp4)
@@ -510,19 +578,24 @@ Reactant.@reactant_overlay function Krang.radial_inf_integrals_case2(metric::Kra
 end
 
 Reactant.@reactant_overlay function Krang.total_mino_time(metric::Krang.Kerr, roots)
-    numreals = sum(_isreal2, roots) 
+    numreals = sum(_isreal2, roots)
     I0_inf = Ir_inf(metric, roots)
     rh = horizon(metric)
     τf = roots[1]
     Reactant.@trace if numreals == 4
-        τf =  2 * I0_inf
+        τf = 2 * I0_inf
     else
         τf = I0_inf - Ir_s(metric, rh, roots, true)
     end
     return τf
 end
 
-@inline Reactant.@reactant_overlay function Krang._absGθo_Gθhat(metric::Krang.Kerr, θo::A, η::B, λ::C) where {A,B,C}
+@inline Reactant.@reactant_overlay function Krang._absGθo_Gθhat(
+    metric::Krang.Kerr,
+    θo::A,
+    η::B,
+    λ::C,
+) where {A,B,C}
     T = typeof(metric.spin)
     a = metric.spin
     a2 = a^2
@@ -571,7 +644,12 @@ end
 #    end
 #end
 
-Reactant.@reactant_overlay function Krang._absGϕo_Gϕhat(metric::Krang.Kerr, θo::A, η::B, λ::C) where {A,B,C}
+Reactant.@reactant_overlay function Krang._absGϕo_Gϕhat(
+    metric::Krang.Kerr,
+    θo::A,
+    η::B,
+    λ::C,
+) where {A,B,C}
     T = typeof(metric.spin)
     a = metric.spin
     a2 = a^2
@@ -619,7 +697,12 @@ end
 #    end
 #end
 
-Reactant.@reactant_overlay function Krang._absGto_Gthat(metric::Krang.Kerr, θo, η::TracedRNumber, λ)
+Reactant.@reactant_overlay function Krang._absGto_Gthat(
+    metric::Krang.Kerr,
+    θo,
+    η::TracedRNumber,
+    λ,
+)
     T = typeof(metric.spin)
     a = metric.spin
     a2 = a^2
@@ -651,18 +734,43 @@ Reactant.@reactant_overlay function Krang._absGto_Gthat(metric::Krang.Kerr, θo,
     return Go, Ghat
 end
 
-@inline function _reactant_bad_angular_branch(signβ, θs, θo, isindir, n, isvortical, isincone, TT)
+@inline function _reactant_bad_angular_branch(
+    signβ,
+    θs,
+    θo,
+    isindir,
+    n,
+    isvortical,
+    isincone,
+    TT,
+)
     halfpi = TT(Base.pi / 2)
-    return (isincone & (isindir != ((signβ > zero(TT)) ⊻ (θo > halfpi)))) |
-           (((((signβ < zero(TT)) ⊻ (θs > halfpi)) ⊻ (n % 2 == 1)) & !isincone & !isvortical) |
-            (isvortical & ((θo >= halfpi) ⊻ (θs > halfpi))))
+    return (isincone & (isindir != ((signβ > zero(TT)) ⊻ (θo > halfpi)))) | (
+        ((((signβ < zero(TT)) ⊻ (θs > halfpi)) ⊻ (n % 2 == 1)) & !isincone & !isvortical) |
+        (isvortical & ((θo >= halfpi) ⊻ (θs > halfpi)))
+    )
 end
 
-function _reactant_Gθ_vortical_minotime(Go, Ghat, θs, θo, signβ, n, isindir, um, up, m, a2, isincone, TT)
+function _reactant_Gθ_vortical_minotime(
+    Go,
+    Ghat,
+    θs,
+    θo,
+    signβ,
+    n,
+    isindir,
+    um,
+    up,
+    m,
+    a2,
+    isincone,
+    TT,
+)
     args = (cos(θs)^2 - um) / (up - um)
     argo = (cos(θo)^2 - um) / (up - um)
     k = one(TT) - m
-    invalid = !(((zero(TT) < argo) & (argo < one(TT))) & ((zero(TT) < args) & (args < one(TT))))
+    invalid =
+        !(((zero(TT) < argo) & (argo < one(TT))) & ((zero(TT) < args) & (args < one(TT))))
     safe_args = clamp(args, eps(TT), one(TT) - eps(TT))
     tempfac = inv(√abs(um * a2))
     signθs = Base.ifelse(θs > TT(Base.pi / 2), -one(TT), one(TT))
@@ -681,10 +789,25 @@ function _reactant_Gθ_vortical_minotime(Go, Ghat, θs, θo, signβ, n, isindir,
     return τ, validi
 end
 
-function _reactant_Gθ_nonvortical_minotime(Go, Ghat, θs, θo, signβ, n, isindir, um, up, m, a2, isincone, TT)
+function _reactant_Gθ_nonvortical_minotime(
+    Go,
+    Ghat,
+    θs,
+    θo,
+    signβ,
+    n,
+    isindir,
+    um,
+    up,
+    m,
+    a2,
+    isincone,
+    TT,
+)
     args = cos(θs) / √up
     argo = cos(θo) / √up
-    invalid = !(((-one(TT) < args) & (args < one(TT))) & ((-one(TT) < argo) & (argo < one(TT))))
+    invalid =
+        !(((-one(TT) < args) & (args < one(TT))) & ((-one(TT) < argo) & (argo < one(TT))))
     safe_args = clamp(args, -one(TT) + eps(TT), one(TT) - eps(TT))
     tempfac = inv(√abs(um * a2))
     Gs = tempfac * ellF(asin(safe_args), m)
@@ -726,8 +849,14 @@ function _reactant_Gϕ_minotime(pix::Krang.SlowLightIntensityPixel, θs, isindir
     argo_v = (cos(θo)^2 - um) / (up - um)
     args_n = cos(θs) / √up
     argo_n = cos(θo) / √up
-    invalid_v = !(((zero(TT) < argo_v) & (argo_v < one(TT))) & ((zero(TT) < args_v) & (args_v < one(TT))))
-    invalid_n = !(((-one(TT) < args_n) & (args_n < one(TT))) & ((-one(TT) < argo_n) & (argo_n < one(TT))))
+    invalid_v = !(
+        ((zero(TT) < argo_v) & (argo_v < one(TT))) &
+        ((zero(TT) < args_v) & (args_v < one(TT)))
+    )
+    invalid_n = !(
+        ((-one(TT) < args_n) & (args_n < one(TT))) &
+        ((-one(TT) < argo_n) & (argo_n < one(TT)))
+    )
 
     safe_args_v = clamp(args_v, eps(TT), one(TT) - eps(TT))
     safe_args_n = clamp(args_n, -one(TT) + eps(TT), one(TT) - eps(TT))
@@ -787,8 +916,14 @@ function _reactant_Gt_minotime(pix::Krang.SlowLightIntensityPixel, θs, isindir,
     argo_v = (cos(θo)^2 - um) / (up - um)
     args_n = cos(θs) / √up
     argo_n = cos(θo) / √up
-    invalid_v = !(((zero(TT) < argo_v) & (argo_v < one(TT))) & ((zero(TT) < args_v) & (args_v < one(TT))))
-    invalid_n = !(((-one(TT) < args_n) & (args_n < one(TT))) & ((-one(TT) < argo_n) & (argo_n < one(TT))))
+    invalid_v = !(
+        ((zero(TT) < argo_v) & (argo_v < one(TT))) &
+        ((zero(TT) < args_v) & (args_v < one(TT)))
+    )
+    invalid_n = !(
+        ((-one(TT) < args_n) & (args_n < one(TT))) &
+        ((-one(TT) < argo_n) & (argo_n < one(TT)))
+    )
 
     safe_args_v = clamp(args_v, eps(TT), one(TT) - eps(TT))
     safe_args_n = clamp(args_n, -one(TT) + eps(TT), one(TT) - eps(TT))
@@ -798,7 +933,8 @@ function _reactant_Gt_minotime(pix::Krang.SlowLightIntensityPixel, θs, isindir,
     signθs = Base.ifelse(θs > TT(Base.pi / 2), -one(TT), one(TT))
     Go_v = signθs * Go
     Gs_v = signθs * tempfac_v * _ellE(asin(√safe_args_v), k)
-    Gs_n = tempfac_n * (_ellE(asin(safe_args_n), k) - ellF(asin(safe_args_n), k)) / (TT(2) * k)
+    Gs_n =
+        tempfac_n * (_ellE(asin(safe_args_n), k) - ellF(asin(safe_args_n), k)) / (TT(2) * k)
 
     νθ = Base.ifelse(isincone, (n % 2 == 1) ⊻ (θo > θs), !isindir ⊻ (θs > TT(Base.pi / 2)))
     signs = Base.ifelse(νθ, one(TT), -one(TT))
@@ -827,9 +963,20 @@ end
     return abs(x - y) <= rtol * max(abs(x), abs(y))
 end
 
-Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals(met::Krang.Kerr, rs, roots, τ, νr)
+Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals(
+    met::Krang.Kerr,
+    rs,
+    roots,
+    τ,
+    νr,
+)
     numreals = sum(_isreal2, roots)
-    result = (zero(real(roots[1])), zero(real(roots[1])), zero(real(roots[1])), zero(real(roots[1])))
+    result = (
+        zero(real(roots[1])),
+        zero(real(roots[1])),
+        zero(real(roots[1])),
+        zero(real(roots[1])),
+    )
     Reactant.@trace if numreals == 4
         result = radial_w_I0_terms_integrals_case2(met, rs, real.(roots), τ, νr)
     elseif numreals == 2
@@ -840,7 +987,13 @@ Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals(met::Krang
     return result
 end
 
-Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case2(metric::Krang.Kerr, rs, roots, τ, νr)
+Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case2(
+    metric::Krang.Kerr,
+    rs,
+    roots,
+    τ,
+    νr,
+)
     T = typeof(metric.spin)
     r1, r2, r3, r4 = roots
     _, r31, r32, r41, r42, _ = _get_root_diffs(roots...)
@@ -893,7 +1046,12 @@ Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case2(metr
     )
 end
 
-Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case3(metric::Krang.Kerr, rs, roots, τ)
+Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case3(
+    metric::Krang.Kerr,
+    rs,
+    roots,
+    τ,
+)
     T = typeof(metric.spin)
     r1, r2, _, _ = roots
     r21, r31, r32, r41, r42, _ = _get_root_diffs(roots...)
@@ -947,7 +1105,12 @@ Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case3(metr
     )
 end
 
-Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case4(metric::Krang.Kerr, rs, roots, τ)
+Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case4(
+    metric::Krang.Kerr,
+    rs,
+    roots,
+    τ,
+)
     T = typeof(metric.spin)
     _, r2, _, r4 = roots
     a = metric.spin
@@ -995,7 +1158,12 @@ Reactant.@reactant_overlay function Krang.radial_w_I0_terms_integrals_case4(metr
     )
 end
 
-Reactant.@reactant_overlay function Krang.radial_integrals(pix::Krang.AbstractPixel, rs, τ, νr)
+Reactant.@reactant_overlay function Krang.radial_integrals(
+    pix::Krang.AbstractPixel,
+    rs,
+    τ,
+    νr,
+)
     met = metric(pix)
     I1_o, I2_o, Ip_o, Im_o = Krang.radial_inf_integrals(met, roots(pix))
     I1_s, I2_s, Ip_s, Im_s = Krang.radial_w_I0_terms_integrals(met, rs, roots(pix), τ, νr)
@@ -1029,14 +1197,17 @@ function _reactant_θs(metric::Krang.Kerr, signβ, θo, η, λ, τ)
         τo = tempfac * ellF(asin(√argo), k)
         Ghat_2 = tempfac * ellK(k)
         τhat = 2 * Ghat_2
-        Δτtemp = mod(τ, τhat) + Base.ifelse(θo > T(Base.pi / 2), -one(T), one(T)) * signβ * τo
+        Δτtemp =
+            mod(τ, τhat) + Base.ifelse(θo > T(Base.pi / 2), -one(T), one(T)) * signβ * τo
         n = unsafe_trunc(Int, τ / τhat)
         cand1 = τhat - Δτtemp
         cand2 = Δτtemp
         absτs = abs(Base.ifelse(abs(cand1) <= abs(cand2), cand1, cand2))
         τs = Base.ifelse(θo > T(Base.pi / 2), -one(T), one(T)) * absτs
         argr = ellsn(absτs / tempfac, k)^2
-        ans = acos(Base.ifelse(θo > T(Base.pi / 2), -one(T), one(T)) * √((up - um) * argr + um))
+        ans = acos(
+            Base.ifelse(θo > T(Base.pi / 2), -one(T), one(T)) * √((up - um) * argr + um),
+        )
         signo = Base.ifelse(ans > T(Base.pi / 2), -one(T), one(T))
         τo = signo * τo
     else
@@ -1079,12 +1250,7 @@ Reactant.@reactant_overlay function Krang.emission_inclination(pix::Krang.Abstra
     return _reactant_θs(met, sign(β), θo, Krang.η(pix), Krang.λ(pix), τ)
 end
 
-function _reactant_Gθ_minotime(
-    pix::Krang.SlowLightIntensityPixel,
-    θs,
-    isindir,
-    n,
-)
+function _reactant_Gθ_minotime(pix::Krang.SlowLightIntensityPixel, θs, isindir, n)
     _, β = screen_coordinate(pix)
     met = metric(pix)
     θo = inclination(pix)
@@ -1107,8 +1273,36 @@ function _reactant_Gθ_minotime(
     up = min(Δθ + desc, one(TT) - eps(TT))
     um = Δθ - desc
     m = up / um
-    τvort, validvort = _reactant_Gθ_vortical_minotime(Go, Ghat, θs, θo, signβ, n, isindir, um, up, m, a2, isincone, TT)
-    τnon, validnon = _reactant_Gθ_nonvortical_minotime(Go, Ghat, θs, θo, signβ, n, isindir, um, up, m, a2, isincone, TT)
+    τvort, validvort = _reactant_Gθ_vortical_minotime(
+        Go,
+        Ghat,
+        θs,
+        θo,
+        signβ,
+        n,
+        isindir,
+        um,
+        up,
+        m,
+        a2,
+        isincone,
+        TT,
+    )
+    τnon, validnon = _reactant_Gθ_nonvortical_minotime(
+        Go,
+        Ghat,
+        θs,
+        θo,
+        signβ,
+        n,
+        isindir,
+        um,
+        up,
+        m,
+        a2,
+        isincone,
+        TT,
+    )
     τcandidate = Base.ifelse(isvortical, τvort, τnon)
     validi = Base.ifelse(isvortical, validvort, validnon)
     τ = Base.ifelse(bad, zero(Go), τcandidate)
@@ -1128,7 +1322,7 @@ Reactant.@reactant_overlay function Krang._rs_case1_and_2(pix::Krang.AbstractPix
     rh += eps(T)
     x2_s = √abs((rh - r4) / (rh - r3) * r31 / r41)
     coef = 2 / √real(r31 * r42)
-    Ir_s = zero(T) 
+    Ir_s = zero(T)
     @trace if (x2_s < 1)
         Ir_s = coef * ellF(asin(x2_s), k)
     end
@@ -1192,7 +1386,7 @@ Reactant.@reactant_overlay function Krang._rs_case4(pix::Krang.AbstractPixel, rh
     fo = I0_inf(pix)
 
     return_vals = (T(Inf), false, false)
-    @trace if !(τ > (fo - Ir_s)) 
+    @trace if !(τ > (fo - Ir_s))
         X4 = (C + D) / T(2) * (fo - τ)
         num = go - ellsc(X4, k4)
         den = 1 + go * ellsc(X4, k4)
@@ -1202,10 +1396,7 @@ Reactant.@reactant_overlay function Krang._rs_case4(pix::Krang.AbstractPixel, rh
     return return_vals
 end
 
-function _reactant_emission_radius_tau(
-    pix::Krang.SlowLightIntensityPixel,
-    τ,
-) 
+function _reactant_emission_radius_tau(pix::Krang.SlowLightIntensityPixel, τ)
     rh = horizon(metric(pix))
     numreals = sum(_isreal2, roots(pix))
     rs4, valid4 = Krang.rs_case1_and_2(pix, rh, τ)
@@ -1220,12 +1411,7 @@ function _reactant_emission_radius_tau(
     return rs, valid
 end
 
-function _reactant_emission_radius_theta(
-    pix::Krang.SlowLightIntensityPixel,
-    θs,
-    isindir,
-    n,
-) 
+function _reactant_emission_radius_theta(pix::Krang.SlowLightIntensityPixel, θs, isindir, n)
     α, β = screen_coordinate(pix)
     θo = inclination(pix)
     met = metric(pix)
@@ -1254,10 +1440,7 @@ function _reactant_emission_radius_theta(
     return rs, valid
 end
 
-function _emission_radius(
-    pix::Krang.SlowLightIntensityPixel,
-    τ,
-) 
+function _emission_radius(pix::Krang.SlowLightIntensityPixel, τ)
     TT = typeof(metric(pix).spin)
     numreals = sum(_isreal2, roots(pix))
     rh = horizon(metric(pix))
@@ -1321,7 +1504,7 @@ end
 #    end
 #end
 
-Reactant.@reactant_overlay function Krang.emission_radius(pix::Krang.AbstractPixel, τ) 
+Reactant.@reactant_overlay function Krang.emission_radius(pix::Krang.AbstractPixel, τ)
     met = metric(pix)
     a = met.spin
     T = typeof(a)
@@ -1349,7 +1532,7 @@ Reactant.@reactant_overlay function Krang.emission_radius(
     θs,
     isindir,
     n,
-) 
+)
     α, β = screen_coordinate(pix)
     θo = inclination(pix)
     met = metric(pix)
@@ -1381,13 +1564,23 @@ Reactant.@reactant_overlay function Krang.emission_radius(
     return rs, νr, νθ, numreals, issuccess
 end
 
-Reactant.@reactant_overlay function Krang.Gϕ(pix::Krang.SlowLightIntensityPixel, θs, isindir, n)
+Reactant.@reactant_overlay function Krang.Gϕ(
+    pix::Krang.SlowLightIntensityPixel,
+    θs,
+    isindir,
+    n,
+)
     ans, valid = _reactant_Gϕ_minotime(pix, θs, isindir, n)
     TT = typeof(metric(pix).spin)
     return ans, zero(TT), zero(TT), zero(TT), false, valid
 end
 
-Reactant.@reactant_overlay function Krang.Gt(pix::Krang.SlowLightIntensityPixel, θs, isindir, n)
+Reactant.@reactant_overlay function Krang.Gt(
+    pix::Krang.SlowLightIntensityPixel,
+    θs,
+    isindir,
+    n,
+)
     ans, valid = _reactant_Gt_minotime(pix, θs, isindir, n)
     TT = typeof(metric(pix).spin)
     return ans, zero(TT), zero(TT), zero(TT), false, valid
@@ -1420,8 +1613,11 @@ Reactant.@reactant_overlay function Krang.emission_coordinates(
 
     rp = one(TT) + √(one(TT) - a^2)
     rm = one(TT) - √(one(TT) - a^2)
-    It = 4 / (rp - rm) * (rp * (rp - a * λtemp / 2) * Ip - rm * (rm - a * λtemp / 2) * Im) +
-         4 * I0 + 2 * I1 + I2
+    It =
+        4 / (rp - rm) * (rp * (rp - a * λtemp / 2) * Ip - rm * (rm - a * λtemp / 2) * Im) +
+        4 * I0 +
+        2 * I1 +
+        I2
     Iϕ = 2a / (rp - rm) * ((rp - a * λtemp / 2) * Ip - (rm - a * λtemp / 2) * Im)
 
     Gϕtemp, Gϕvalid = _reactant_Gϕ_minotime(pix, θs, isindir, n)
@@ -1430,7 +1626,11 @@ Reactant.@reactant_overlay function Krang.emission_coordinates(
     emission_azimuth = Iϕ + λtemp * Gϕtemp
     emission_time_regularized = It + a^2 * Gttemp
 
-    νθ = Base.ifelse(abs(cosθs) < abs(cosθo), (n % 2 == 1) ⊻ (θo > θs), !isindir ⊻ (θs > TT(Base.pi / 2)))
+    νθ = Base.ifelse(
+        abs(cosθs) < abs(cosθo),
+        (n % 2 == 1) ⊻ (θo > θs),
+        !isindir ⊻ (θs > TT(Base.pi / 2)),
+    )
     issuccess = (!blocked) & τvalid & rssuccess & Gϕvalid & Gtvalid & !isnan(τ)
 
     t = Base.ifelse(issuccess, emission_time_regularized, zero(TT))
@@ -1464,8 +1664,11 @@ Reactant.@reactant_overlay function Krang.emission_coordinates(
     rp = one(TT) + √(one(TT) - a^2)
     rm = one(TT) - √(one(TT) - a^2)
 
-    It = 4 / (rp - rm) * (rp * (rp - a * λtemp / 2) * Ip - rm * (rm - a * λtemp / 2) * Im) +
-         4 * I0 + 2 * I1 + I2
+    It =
+        4 / (rp - rm) * (rp * (rp - a * λtemp / 2) * Ip - rm * (rm - a * λtemp / 2) * Im) +
+        4 * I0 +
+        2 * I1 +
+        I2
     Iϕ = 2a / (rp - rm) * ((rp - a * λtemp / 2) * Ip - (rm - a * λtemp / 2) * Im)
 
     Gϕtemp, Gϕvalid = _reactant_Gϕ_minotime(pix, θs, isindir, n)
@@ -1473,7 +1676,11 @@ Reactant.@reactant_overlay function Krang.emission_coordinates(
 
     emission_azimuth = Iϕ + λtemp * Gϕtemp
     emission_time_regularized = It + a^2 * Gttemp
-    νθ = Base.ifelse(abs(cos(θs)) < abs(cos(θo)), (n % 2 == 1) ⊻ (θo > θs), !isindir ⊻ (θs > TT(Base.pi / 2)))
+    νθ = Base.ifelse(
+        abs(cos(θs)) < abs(cos(θo)),
+        (n % 2 == 1) ⊻ (θo > θs),
+        !isindir ⊻ (θs > TT(Base.pi / 2)),
+    )
     issuccess = (!blocked) & rssuccess & Gϕvalid & Gtvalid
 
     t = Base.ifelse(issuccess, emission_time_regularized, zero(TT))
@@ -1522,9 +1729,13 @@ function _reactant_slow_light_intensity_pixel(met::Krang.Kerr, α, β, θo)
     tempλ = Krang.λ(met, α, θo)
     roots = Krang.get_radial_roots(met, tempη, tempλ)
     r1, r2, r3, r4 = roots
-    numreals = sum(_isreal2, roots) 
+    numreals = sum(_isreal2, roots)
 
-    roots = Base.ifelse((numreals == 2) & (abs(imag(r4)) < sqrt(eps(TT))), (r1, r4, r2, r3), roots)
+    roots = Base.ifelse(
+        (numreals == 2) & (abs(imag(r4)) < sqrt(eps(TT))),
+        (r1, r4, r2, r3),
+        roots,
+    )
 
     I1, I2, Ip, Im = Krang.radial_inf_integrals(met, roots)
     I0_inf = Krang.Ir_inf(met, roots)
@@ -1547,9 +1758,9 @@ function _reactant_slow_light_intensity_pixel(met::Krang.Kerr, α, β, θo)
         I2,
         Ip,
         Im,
-        absGθo_Gθhat,       
-        absGϕo_Gϕhat,       
-        absGto_Gthat,       
+        absGθo_Gθhat,
+        absGϕo_Gϕhat,
+        absGto_Gthat,
         θo,
         tempη,
         tempλ,
@@ -1565,7 +1776,11 @@ function _reactant_intensity_pixel(met::Krang.Kerr, α, β, θo)
     r1, r2, r3, r4 = roots
     numreals = sum(_isreal2, roots)
 
-    roots = Base.ifelse((numreals == 2) & (abs(imag(r4)) < sqrt(eps(TT))), (r1, r4, r2, r3), roots)
+    roots = Base.ifelse(
+        (numreals == 2) & (abs(imag(r4)) < sqrt(eps(TT))),
+        (r1, r4, r2, r3),
+        roots,
+    )
 
     I0_inf = Krang.Ir_inf(met, roots)
     τ_total = Krang.total_mino_time(met, roots)
@@ -1584,12 +1799,7 @@ function _reactant_intensity_pixel(met::Krang.Kerr, α, β, θo)
     )
 end
 
-Reactant.@reactant_overlay function Krang.SlowLightIntensityPixel(
-    met::Krang.Kerr,
-    α,
-    β,
-    θo,
-) 
+Reactant.@reactant_overlay function Krang.SlowLightIntensityPixel(met::Krang.Kerr, α, β, θo)
     return _reactant_slow_light_intensity_pixel(met, α, β, θo)
 end
 

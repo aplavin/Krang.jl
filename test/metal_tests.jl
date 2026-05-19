@@ -18,8 +18,8 @@ end
 
         met = Krang.Kerr(0.5f0)
 
-        α_s = Float32[i for i in -10:0.01:10]
-        β_s = Float32[i for i in -10:0.01:10]
+        α_s = Float32[i for i = -10:0.01:10]
+        β_s = Float32[i for i = -10:0.01:10]
         θo_s = Float32[i * π / 180 for i in range(1, 40, length(α_s))]
         θs_s = Float32[i * π / 180 for i in range(80, 100, length(α_s))]
         α_mtl = Mat(α_s)
@@ -35,7 +35,9 @@ end
 
         radial_roots_s = Krang.get_radial_roots.(Ref(met), η_s, λ_s)
         radial_roots_mtl = Krang.get_radial_roots.(Ref(met), η_mtl, λ_mtl)
-        @test maximum(abs.(sum.(collect.(Array(radial_roots_mtl)) .- collect.(radial_roots_s)))) ≈ 0f0 atol = 1e-5
+        @test maximum(
+            abs.(sum.(collect.(Array(radial_roots_mtl)) .- collect.(radial_roots_s))),
+        ) ≈ 0.0f0 atol = 1e-5
 
         numreals = sum.(Ref(Krang._isreal2), radial_roots_s)
         numreals_mtl = sum.(Ref(Krang._isreal2), radial_roots_mtl)
@@ -83,13 +85,13 @@ end
             return mat.weight * (intersection.rs + intersection.θs + α - β)
         end
 
-        mesh = Krang.Mesh(Krang.ConeGeometry(π / 4f0), MetalConeMaterial((0, 1), 0.125f0))
+        mesh = Krang.Mesh(Krang.ConeGeometry(π / 4.0f0), MetalConeMaterial((0, 1), 0.125f0))
         cone_obs_s = raytrace.(pix_s, Ref(mesh))
         cone_obs_mtl = raytrace.(pix_mtl, Ref(mesh))
         cone_delta = abs.(Array(cone_obs_mtl) .- cone_obs_s)
 
         @test maximum(cone_delta) < 0.04f0
         @test sum(cone_delta) / length(cone_delta) < 0.003f0
-        @test sum(abs, Array(cone_obs_mtl)) > 0f0
+        @test sum(abs, Array(cone_obs_mtl)) > 0.0f0
     end
 end

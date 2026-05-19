@@ -33,8 +33,10 @@ end
         for idx in CartesianIndices(cpu_screen.pixels)
             cpu_pixel = cpu_screen.pixels[idx]
             ka_pixel = ka_screen.pixels[idx]
-            @test Krang.screen_coordinate(ka_pixel)[1] ≈ Krang.screen_coordinate(cpu_pixel)[1]
-            @test Krang.screen_coordinate(ka_pixel)[2] ≈ Krang.screen_coordinate(cpu_pixel)[2]
+            @test Krang.screen_coordinate(ka_pixel)[1] ≈
+                  Krang.screen_coordinate(cpu_pixel)[1]
+            @test Krang.screen_coordinate(ka_pixel)[2] ≈
+                  Krang.screen_coordinate(cpu_pixel)[2]
             @test Krang.inclination(ka_pixel) == Krang.inclination(cpu_pixel)
             @test Krang.η(ka_pixel) ≈ Krang.η(cpu_pixel)
             @test Krang.λ(ka_pixel) ≈ Krang.λ(cpu_pixel)

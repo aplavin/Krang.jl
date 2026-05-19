@@ -5,7 +5,7 @@ export IntensityCamera
 Intensity Pixel Type. 
 Each Pixel is associated with a single ray, and caches some information about the ray.
 """
-struct IntensityPixel{T1, T2, T3, T4, T5, T6, T7, T8, T9} <: AbstractPixel
+struct IntensityPixel{T1,T2,T3,T4,T5,T6,T7,T8,T9} <: AbstractPixel
     metric::Kerr{T1}
     screen_coordinate::NTuple{2,T2}
     "Radial roots"
@@ -52,17 +52,7 @@ function IntensityPixel(met::Kerr{T}, α, β, θo) where {T}
     I0_inf = Krang.Ir_inf(met, roots)
     τ_total = total_mino_time(met, roots)
     Gθo_Gθhat = Krang._absGθo_Gθhat(met, θo, tempη, tempλ)
-    IntensityPixel(
-        met,
-        (α, β),
-        roots,
-        I0_inf,
-        τ_total,
-        Gθo_Gθhat,
-        θo,
-        tempη,
-        tempλ,
-    )
+    IntensityPixel(met, (α, β), roots, I0_inf, τ_total, Gθo_Gθhat, θo, tempη, tempλ)
 end
 
 """
@@ -80,13 +70,16 @@ struct IntensityScreen{A<:AbstractMatrix} <: AbstractScreen
     "Data type that stores screen pixel information"
     pixels::A
 
-    IntensityScreen{A}(αrange::NTuple{2}, βrange::NTuple{2}, pixels::A) where {A<:AbstractMatrix} =
-        new{A}(αrange, βrange, pixels)
+    IntensityScreen{A}(
+        αrange::NTuple{2},
+        βrange::NTuple{2},
+        pixels::A,
+    ) where {A<:AbstractMatrix} = new{A}(αrange, βrange, pixels)
 
     function IntensityScreen(met::Kerr, αmin, αmax, βmin, βmax, θo, res)
         screen = Matrix{IntensityPixel}(undef, res, res)
-        αvals = range(αmin, αmax, length=res)
-        βvals = range(βmin, βmax, length=res)
+        αvals = range(αmin, αmax, length = res)
+        βvals = range(βmin, βmax, length = res)
         for (iα, α) in enumerate(αvals)
             for (iβ, β) in enumerate(βvals)
                 screen[iα, iβ] = IntensityPixel(met, α, β, θo)
@@ -127,21 +120,9 @@ struct IntensityCamera{A} <: AbstractCamera
     # Returns
     - `IntensityCamera{T, A}`: An intensity camera object.
     """
-    function IntensityCamera(
-        met::Kerr{T},
-        θo,
-        αmin,
-        αmax,
-        βmin,
-        βmax,
-        res::Int
-    ) where {T}
+    function IntensityCamera(met::Kerr{T}, θo, αmin, αmax, βmin, βmax, res::Int) where {T}
         screen = IntensityScreen(met, αmin, αmax, βmin, βmax, θo, res)
-        new{typeof(screen.pixels)}(
-            met,
-            screen,
-            (T(Inf), θo),
-        )
+        new{typeof(screen.pixels)}(met, screen, (T(Inf), θo))
     end
 end
 

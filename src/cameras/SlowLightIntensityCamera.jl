@@ -5,7 +5,25 @@ export SlowLightIntensityCamera
 
 Intensity Pixel Type.
 """
-struct SlowLightIntensityPixel{T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17} <: AbstractPixel
+struct SlowLightIntensityPixel{
+    T1,
+    T2,
+    T3,
+    T4,
+    T5,
+    T6,
+    T7,
+    T8,
+    T9,
+    T10,
+    T11,
+    T12,
+    T13,
+    T14,
+    T15,
+    T16,
+    T17,
+} <: AbstractPixel
     metric::Kerr{T1}
     "Pixel screen_coordinate"
     screen_coordinate::NTuple{2,T2}
@@ -33,7 +51,7 @@ struct SlowLightIntensityPixel{T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12
     θo::T15
     η::T16
     λ::T17
-    
+
 end
 
 @doc """
@@ -105,13 +123,16 @@ struct SlowLightIntensityScreen{A<:AbstractMatrix} <: AbstractScreen
     "Data type that stores screen pixel information"
     pixels::A
 
-    SlowLightIntensityScreen{A}(αrange::NTuple{2}, βrange::NTuple{2}, pixels::A) where {A<:AbstractMatrix} =
-        new{A}(αrange, βrange, pixels)
+    SlowLightIntensityScreen{A}(
+        αrange::NTuple{2},
+        βrange::NTuple{2},
+        pixels::A,
+    ) where {A<:AbstractMatrix} = new{A}(αrange, βrange, pixels)
 
-    function SlowLightIntensityScreen(met::Kerr, αmin, αmax, βmin, βmax, θo, res) 
+    function SlowLightIntensityScreen(met::Kerr, αmin, αmax, βmin, βmax, θo, res)
         screen = Matrix{SlowLightIntensityPixel}(undef, res, res)
-        αvals = range(αmin, αmax, length=res)
-        βvals = range(βmin, βmax, length=res)
+        αvals = range(αmin, αmax, length = res)
+        βvals = range(βmin, βmax, length = res)
         for (iα, α) in collect(enumerate(αvals))
             for (iβ, β) in enumerate(βvals)
                 screen[iα, iβ] = SlowLightIntensityPixel(met, α, β, θo)
@@ -158,7 +179,7 @@ struct SlowLightIntensityCamera{A} <: AbstractCamera
         αmax,
         βmin,
         βmax,
-        res
+        res,
     ) where {T}
         screen = SlowLightIntensityScreen(met, αmin, αmax, βmin, βmax, θo, res)
         new{typeof(screen.pixels)}(met, screen, (T(Inf), θo))

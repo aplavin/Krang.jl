@@ -37,18 +37,17 @@ function regularized_Pi(n, ϕ, k)
     return JacobiElliptic.F(ϕ, k) - JacobiElliptic.Pi(ω, ϕ, k)
 end
 
-function regularized_R1(α, φ, j) 
+function regularized_R1(α, φ, j)
     n = α^2 / (α^2 - 1)
     return 1 / (1 - α^2) * (regularized_Pi(n, φ, j))
 end
 
-function regularized_R2(α, φ, j) 
+function regularized_R2(α, φ, j)
 
-    return 1 / (1 - α^2) * (
-        JacobiElliptic.F(φ, j) - α^2 / (j + (1 - j) * α^2) * (JacobiElliptic.E(φ, j)
-        #-α*sin(φ)*sqrt(1-j*sin(φ)^2)/(1+α*cos(φ)) #Linear Divergent term
-        )
-    ) #+ 
+    return 1 / (1 - α^2) *
+           (JacobiElliptic.F(φ, j) - α^2 / (j + (1 - j) * α^2) * (JacobiElliptic.E(φ, j)
+    #-α*sin(φ)*sqrt(1-j*sin(φ)^2)/(1+α*cos(φ)) #Linear Divergent term
+    )) #+ 
     #inv(j+(1-j)*α^2)*(2*j-α^2/(α^2-1))*regularized_R1(α, φ, j)
 end
 
@@ -64,11 +63,11 @@ function regularizedS2(α, φ, j)
            (inv(1 + α^2) + (1 - j) / (1 - j + α^2)) * regularizedS1(α, φ, j)
 end
 
-function p1(α, j) 
+function p1(α, j)
     √abs((α^2 - 1) / (j + (1 - j) * α^2))
 end
 
-function f1(α, sinφ, j) 
+function f1(α, sinφ, j)
     p1temp = p1(α, j)
     tempsinφ = √(1 - j * sinφ^2)
     return p1temp / 2 * log(abs((p1temp * tempsinφ + sinφ) / (p1temp * tempsinφ - sinφ)))
@@ -123,10 +122,7 @@ function R2(α, φ, j)
             JacobiElliptic.E(φ, j) -
             α * sin(φ) * √(1 - j * sin(φ)^2) / ((1 + α * cos(φ)) + epsT)
         )
-    )/denom +
-           inv(j + (1 - j) * α^2) *
-           (2 * j + α^2 / ((1 - α^2) + epsT)) *
-           R1(α, φ, j)
+    )/denom + inv(j + (1 - j) * α^2) * (2 * j + α^2 / ((1 - α^2) + epsT)) * R1(α, φ, j)
 end
 
 function S1(α, φ, j)
@@ -226,10 +222,7 @@ Defines a vertical boundary on the assymptotic observer's screen that emission t
     a = metric.spin
     cosθs2 = cos(θs)^2
     temp = (cos(θo)^2 - cosθs2) * (α^2 - a^2 * (1 - cosθs2)) / (cosθs2 - 1)
-    return √max(
-        temp,
-        zero(temp),
-    ) #eq 15 DOI 10.3847/1538-4357/acafe3 
+    return √max(temp, zero(temp)) #eq 15 DOI 10.3847/1538-4357/acafe3 
 end
 
 """
@@ -242,7 +235,7 @@ Radial potential of spacetime
 - `λ`  : Reduced azimuthal angular momentum
 - `r`  : Boyer Lindquist radius
 """
-function r_potential(metric::Kerr, η, λ, r) 
+function r_potential(metric::Kerr, η, λ, r)
     a = metric.spin
     λ2 = λ^2
     return a * (a * (r * (r + 2) - η) - 4 * λ * r) +
@@ -259,7 +252,7 @@ Theta potential of a Kerr black hole
 - `λ`  : Reduced azimuthal angular momentum
 - `θ`  : Boyer Lindquist inclination
 """
-function θ_potential(metric::Kerr, η, λ, θ) 
+function θ_potential(metric::Kerr, η, λ, θ)
     a = metric.spin
     return η + a^2 * cos(θ)^2 - λ^2 * cot(θ)^2
 end
@@ -289,7 +282,7 @@ function get_radial_roots(metric::Kerr{T}, η, λ) where {T}
     Q = -A / T(3) * (A * A / T(36) + zero(T)im - C) - B^2 / T(8)
 
     negΔ3 = T(4) * P * P * P + T(27) * (Q^2)
-    ωp =  ^(-Q / T(2) + sqrt(negΔ3 / T(108)) + zero(T)im,  T(1 / 3))
+    ωp = ^(-Q / T(2) + sqrt(negΔ3 / T(108)) + zero(T)im, T(1 / 3))
 
     #C = ((-1+0im)^(2/3), (-1+0im)^(4/3), 1) .* ωp
     C = (-T(1 / 2) + T(√3 / 2)im, -T(1 / 2) - T(√3 / 2)im, one(T) + zero(T)im) .* ωp
@@ -331,7 +324,7 @@ Mino time of trajectory between an observer at infinity and point at radius rs
 - `rs` : Emission radius
 - `isindir` : Is the path direct or indirect?
 """
-function mino_time(pix, rs, isindir) 
+function mino_time(pix, rs, isindir)
     return Ir(pix, isindir, rs)[1]
 end
 
@@ -344,7 +337,7 @@ See [`r_potential(x)`](@ref) for an implementation of \$\\mathcal{R}(r)\$.
 - `metric`: Kerr{T} metric
 - `roots`  : Roots of the radial potential
 """
-function Ir_inf(metric::Kerr{T}, roots) where T
+function Ir_inf(metric::Kerr{T}, roots) where {T}
     #root_diffs = _get_root_diffs(roots...)
     numreals = sum(map(_isreal2, roots))
 
@@ -357,7 +350,7 @@ function Ir_inf(metric::Kerr{T}, roots) where T
     end
 end
 
-function Ir_inf_case1_and_2(::Kerr, roots::NTuple{4}) 
+function Ir_inf_case1_and_2(::Kerr, roots::NTuple{4})
     _, r31, r32, r41, r42, _ = _get_root_diffs(roots...)
 
     k = r32 * r41 / (r31 * r42)
@@ -367,7 +360,7 @@ function Ir_inf_case1_and_2(::Kerr, roots::NTuple{4})
     return Ir_inf
 end
 
-function Ir_inf_case3(::Kerr, roots::NTuple{4}) 
+function Ir_inf_case3(::Kerr, roots::NTuple{4})
     r1, r2, _, _ = roots
     r21, r31, r32, r41, r42, _ = _get_root_diffs(roots...)
 
@@ -413,7 +406,7 @@ See [`r_potential(x)`](@ref) for an implementation of \$\\mathcal{R}(r)\$.
 - `roots`  : Roots of the radial potential
 - `νr` : Radial emission direction (Only necessary for case 1&2 geodesics)
 """
-function Ir_s(metric::Kerr{T}, rs, roots, νr) where T
+function Ir_s(metric::Kerr{T}, rs, roots, νr) where {T}
     numreals = sum(_isreal2.(roots))
 
     if numreals == 4 #case 2
@@ -437,7 +430,7 @@ function Ir_s_case1_and_2(::Kerr{T}, rs, roots::NTuple{4}, νr) where {T}
     return -(-1)^νr * Ir_s
 end
 
-function Ir_s_case3(::Kerr, rs, roots::NTuple{4}) 
+function Ir_s_case3(::Kerr, rs, roots::NTuple{4})
     r1, r2, _, _ = roots
     r21, r31, r32, r41, r42, _ = _get_root_diffs(roots...)
 
@@ -907,8 +900,16 @@ function It_inf_case4(metric::Kerr{T}, roots::NTuple{4}, λ) where {T}
     I1_total =
         -(Π1_o) +
         log(
-            (T(16) * (oneT + go^2 - sqrt((oneT + go^2) * (oneT + go^2 - k4))) * (oneT + go^2 - k4)) /
-            ((C + D)^2 * ((oneT + go^2)^2 - k4) * k4 * (oneT + sqrt(oneT - k4 / (oneT + go^2)))),
+            (
+                T(16) *
+                (oneT + go^2 - sqrt((oneT + go^2) * (oneT + go^2 - k4))) *
+                (oneT + go^2 - k4)
+            ) / (
+                (C + D)^2 *
+                ((oneT + go^2)^2 - k4) *
+                k4 *
+                (oneT + sqrt(oneT - k4 / (oneT + go^2)))
+            ),
         ) / T(2)
 
     # Removed linear divergence
@@ -1794,22 +1795,15 @@ function Gs(pix::AbstractPixel, τ::T) where {T}
         Δτtemp = (τ % Ghat + (θo > T(π / 2) ? -1 : 1) * signβ * Go)
         n = floor(τ / Ghat)
         Δτ =
-            (θo > T(π / 2) ? -1 : 1) * abs(
-                argmin(
-                    abs,
-                    [(-1)^n * signβ * (Ghat - Δτtemp), (-1)^n * signβ * Δτtemp],
-                ),
-            )
+            (θo > T(π / 2) ? -1 : 1) *
+            abs(argmin(abs, [(-1)^n * signβ * (Ghat - Δτtemp), (-1)^n * signβ * Δτtemp]))
     else
         argo = cos(θo) / √(up)
         k = m
         tempfac = inv(√abs(um * a^2))
         Δτtemp = (τ % Ghat + signβ * Go)
         n = floor(τ / Ghat)
-        Δτ = argmin(
-            abs,
-            [(-1)^n * signβ * (Ghat - Δτtemp), (-1)^n * signβ * Δτtemp],
-        )
+        Δτ = argmin(abs, [(-1)^n * signβ * (Ghat - Δτtemp), (-1)^n * signβ * Δτtemp])
     end
 
     return Δτ
