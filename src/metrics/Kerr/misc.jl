@@ -84,14 +84,36 @@ function f2(α, sinφ, j)
     )
 end
 
-function R1(α, φ, j) 
+function R1(α, φ, j)
     #FIXME: This function is undefined when n=1 in Pi(n, ϕ, m) and when α^2 =1
     epsT = eps(α)
     denom = ((1 - α^2) + epsT)
     return (JacobiElliptic.Pi(-α^2 / denom + epsT, φ, j) - α * f1(α, sin(φ), j)) / denom
 end
 
-function R2(α, φ, j) 
+# Combined product `(2·r21·√AB / D) · R1(α, φ, j)` for α = S/D (with
+# S = B·r2 + A·r1, D = B·r2 − A·r1, R = 4·A·B·r1·r2 = S² − D²).
+# Rewriting via R1's expansion + the n = S²/R, p1 = √(R/(j·D² + (1−j)·S²))
+# identities gives the equivalent form `(2·r21·√AB) · (S·f1 − D·Π) / R` which
+# is smooth at D → 0, avoiding the catastrophic Float32 cancellation in
+# `B·r2 − A·r1` near the photon sphere. R is computed directly as
+# `4·A·B·r1·r2` (not via `S² − D²`). `√abs` mirrors `p1`'s defensive form.
+@inline function _R1_alpha_combined(A::T, B::T, r1::T, r2::T, r21::T, φ, j) where {T}
+    AB = A * B
+    sqrtAB = √AB
+    S = B * r2 + A * r1
+    D = B * r2 - A * r1
+    R = 4 * AB * r1 * r2
+    n_α = S * S / R + eps(T)
+    sinφ = sin(φ)
+    tempsinφ = √(one(T) - j * sinφ * sinφ)
+    p1_α = √abs(R / (j * D * D + (one(T) - j) * S * S))
+    f1_α = (p1_α / 2) * log(abs((p1_α * tempsinφ + sinφ) / (p1_α * tempsinφ - sinφ)))
+    Π = JacobiElliptic.Pi(n_α, φ, j)
+    return 2 * r21 * sqrtAB * (S * f1_α - D * Π) / R
+end
+
+function R2(α, φ, j)
     #FIXME: This function is undefined when α*cos(φ) = 1
     epsT = eps(α)
     denom = ((1 - α^2) + epsT)
@@ -544,14 +566,11 @@ function Iϕ_inf_case3(metric::Kerr{T}, roots::NTuple{4}, λ) where {T}
 
     (isnan(φ_o)) && return T(NaN)
 
-    αp = (B * rp2 + A * rp1) / (B * rp2 - A * rp1)
-    αm = (B * rm2 + A * rm1) / (B * rm2 - A * rm1)
+    C1p_o = _R1_alpha_combined(A, B, rp1, rp2, r21, φ_o, k3)
+    C1m_o = _R1_alpha_combined(A, B, rm1, rm2, r21, φ_o, k3)
 
-    R1p_o = R1(αp, φ_o, k3)
-    R1m_o = R1(αm, φ_o, k3)
-
-    Ip = -inv(B * rp2 + A * rp1) * (2 * r21 * √(A * B) / (B * rp2 - A * rp1) * R1p_o)
-    Im = -inv(B * rm2 + A * rm1) * (2 * r21 * √(A * B) / (B * rm2 - A * rm1) * R1m_o)
+    Ip = -inv(B * rp2 + A * rp1) * C1p_o
+    Im = -inv(B * rm2 + A * rm1) * C1m_o
 
     return (2a / (rp - rm) * ((rp - a * λ / 2) * Ip - (rm - a * λ / 2) * Im))
 end
@@ -683,18 +702,11 @@ function Iϕ_w_I0_terms_case3(metric::Kerr{T}, rs, τ, roots::NTuple{4}, λ) whe
 
     (isnan(φ_s)) && return T(NaN)
 
-    αp = (B * rp2 + A * rp1) / (B * rp2 - A * rp1)
-    αm = (B * rm2 + A * rm1) / (B * rm2 - A * rm1)
+    C1p_s = _R1_alpha_combined(A, B, rp1, rp2, r21, φ_s, k3)
+    C1m_s = _R1_alpha_combined(A, B, rm1, rm2, r21, φ_s, k3)
 
-    R1p_s = R1(αp, φ_s, k3)
-    R1m_s = R1(αm, φ_s, k3)
-
-    Ip =
-        -inv(B * rp2 + A * rp1) *
-        ((B + A) * τ + 2 * r21 * √(A * B) / (B * rp2 - A * rp1) * (-R1p_s))
-    Im =
-        -inv(B * rm2 + A * rm1) *
-        ((B + A) * τ + 2 * r21 * √(A * B) / (B * rm2 - A * rm1) * (-R1m_s))
+    Ip = -inv(B * rp2 + A * rp1) * ((B + A) * τ - C1p_s)
+    Im = -inv(B * rm2 + A * rm1) * ((B + A) * τ - C1m_s)
 
     return -(2a / (rp - rm) * ((rp - a * λ / 2) * Ip - (rm - a * λ / 2) * Im))
 end
@@ -839,22 +851,19 @@ function It_inf_case3(metric::Kerr{T}, roots::NTuple{4}, λ) where {T}
     (isnan(φ_o)) && return T(NaN)
 
     αo = (B + A) / (B - A)
-    αp = (B * rp2 + A * rp1) / (B * rp2 - A * rp1)
-    αm = (B * rm2 + A * rm1) / (B * rm2 - A * rm1)
 
     Π1_o = 2 * r21 * √real(A * B) / (B2 - A2) * regularized_R1(αo, φ_o, k3) # Divergence is removed, will be added back in the end
     Π2_o = ((2 * r21 * √(A * B) / (B2 - A2))^2) * regularized_R2(αo, φ_o, k3)# Divergence is removed, will be added back in the end
+
+    C1p_o = _R1_alpha_combined(A, B, rp1, rp2, r21, φ_o, k3)
+    C1m_o = _R1_alpha_combined(A, B, rm1, rm2, r21, φ_o, k3)
 
     # Removed logarithmic divergence
     I1_total = Π1_o + log(16 * r21^2 / ((A2 - B2)^2 + 4 * A * B * r21^2)) / 2
     # Removed linear divergence
     I2_total = (-√(A * B) * (Π2_o)) + (B * r2 + A * r1) / (A + B)
-    Ip_total =
-        -inv(B * rp2 + A * rp1) *
-        (2 * r21 * √(A * B) / (B * rp2 - A * rp1) * (R1(αp, φ_o, k3)))
-    Im_total =
-        -inv(B * rm2 + A * rm1) *
-        (2 * r21 * √(A * B) / (B * rm2 - A * rm1) * (R1(αm, φ_o, k3)))
+    Ip_total = -inv(B * rp2 + A * rp1) * C1p_o
+    Im_total = -inv(B * rm2 + A * rm1) * C1m_o
 
     return -(
         4 / (rp - rm) *
@@ -1052,11 +1061,12 @@ end
     (isnan(φ_s)) && return T(NaN)
 
     αo = (B + A) / (B - A)
-    αp = (B * rp2 + A * rp1) / (B * rp2 - A * rp1)
-    αm = (B * rm2 + A * rm1) / (B * rm2 - A * rm1)
 
     Π1_s = 2 * r21 * √real(A * B) / (B2 - A2) * R1(αo, φ_s, k3)
     Π2_s = ((2 * r21 * √(A * B) / (B2 - A2))^2) * R2(αo, φ_s, k3)
+
+    C1p_s = _R1_alpha_combined(A, B, rp1, rp2, r21, φ_s, k3)
+    C1m_s = _R1_alpha_combined(A, B, rm1, rm2, r21, φ_s, k3)
 
     I0_total = τ
     # Removed logarithmic divergence
@@ -1066,12 +1076,8 @@ end
         (((B * r2 + A * r1) / (B + A))^2) * I0_total -
         2 * (B * r2 + A * r1) / (B + A) * (-Π1_s) - √(A * B) * (-Π2_s)
     ) #+ (B * r2 + A * r1) / (A + B)
-    Ip_total =
-        -inv(B * rp2 + A * rp1) *
-        ((B + A) * I0_total + 2 * r21 * √(A * B) / (B * rp2 - A * rp1) * (-R1(αp, φ_s, k3)))
-    Im_total =
-        -inv(B * rm2 + A * rm1) *
-        ((B + A) * I0_total + 2 * r21 * √(A * B) / (B * rm2 - A * rm1) * (-R1(αm, φ_s, k3)))
+    Ip_total = -inv(B * rp2 + A * rp1) * ((B + A) * I0_total - C1p_s)
+    Im_total = -inv(B * rm2 + A * rm1) * ((B + A) * I0_total - C1m_s)
 
     return (
         4 / (rp - rm) *
@@ -1217,22 +1223,19 @@ Returns the radial integrals for the case where there are two real roots in the 
     k3 = ((A + B)^2 - r21^2) / (4 * A * B)
 
     αo = (B + A) / (B - A)
-    αp = (B * rp2 + A * rp1) / (B * rp2 - A * rp1)
-    αm = (B * rm2 + A * rm1) / (B * rm2 - A * rm1)
 
     φ_o = acos((A - B) / (A + B))
     Π1_o = 2 * r21 * √real(A * B) / (B2 - A2) * regularized_R1(αo, φ_o, k3)
     Π2_o = ((2 * r21 * √(A * B) / (B2 - A2))^2) * regularized_R2(αo, φ_o, k3)
 
+    C1p_o = _R1_alpha_combined(A, B, rp1, rp2, r21, φ_o, k3)
+    C1m_o = _R1_alpha_combined(A, B, rm1, rm2, r21, φ_o, k3)
+
     I1o_m_I0_terms = Π1_o + log(16 * r21^2 / ((A2 - B2)^2 + 4 * A * B * r21^2)) / 2
     # Removed linear divergence
     I2o_m_I0_terms = -√(A * B) * Π2_o + (B * r2 + A * r1) / (A + B)
-    Ipo_m_I0_terms =
-        -inv(B * rp2 + A * rp1) *
-        (2 * r21 * √(A * B) / (B * rp2 - A * rp1) * (R1(αp, φ_o, k3)))
-    Imo_m_I0_terms =
-        -inv(B * rm2 + A * rm1) *
-        (2 * r21 * √(A * B) / (B * rm2 - A * rm1) * (R1(αm, φ_o, k3)))
+    Ipo_m_I0_terms = -inv(B * rp2 + A * rp1) * C1p_o
+    Imo_m_I0_terms = -inv(B * rm2 + A * rm1) * C1m_o
 
     return I1o_m_I0_terms, I2o_m_I0_terms, Ipo_m_I0_terms, Imo_m_I0_terms
 end
@@ -1411,12 +1414,13 @@ Returns the radial integrals for the case where there are two real roots in the 
 
     φ_s = acos(x3_s)
     αo = (B + A) / (B - A)
-    αp = (B * rp2 + A * rp1) / (B * rp2 - A * rp1)
-    αm = (B * rm2 + A * rm1) / (B * rm2 - A * rm1)
     coef = 2 * r21 * √(A * B) / (B2 - A2)
 
     Π1_s = coef * R1(αo, φ_s, k3)
     Π2_s = (coef^2) * R2(αo, φ_s, k3)
+
+    C1p_s = _R1_alpha_combined(A, B, rp1, rp2, r21, φ_s, k3)
+    C1m_s = _R1_alpha_combined(A, B, rm1, rm2, r21, φ_s, k3)
 
     I0_total = τ
     # Removed logarithmic divergence
@@ -1426,12 +1430,8 @@ Returns the radial integrals for the case where there are two real roots in the 
         (((B * r2 + A * r1) / (B + A))^2) * I0_total -
         2 * (B * r2 + A * r1) / (B + A) * (-Π1_s) - √(A * B) * (-Π2_s)
     )
-    Ip_total =
-        inv(B * rp2 + A * rp1) *
-        ((B + A) * I0_total + 2 * r21 * √(A * B) / (B * rp2 - A * rp1) * (-R1(αp, φ_s, k3)))
-    Im_total =
-        inv(B * rm2 + A * rm1) *
-        ((B + A) * I0_total + 2 * r21 * √(A * B) / (B * rm2 - A * rm1) * (-R1(αm, φ_s, k3)))
+    Ip_total = inv(B * rp2 + A * rp1) * ((B + A) * I0_total - C1p_s)
+    Im_total = inv(B * rm2 + A * rm1) * ((B + A) * I0_total - C1m_s)
 
     return I1_total, I2_total, Ip_total, Im_total
 end

@@ -173,6 +173,15 @@
             end
         end
     end
+    @testset "Case 3 F32 stability (αp/αm cancellation)" begin
+        # F32 photon-ring grazing pixel; (S,D,R)-form keeps case-3 fields F32-close to F64.
+        p64 = Krang.SlowLightIntensityPixel(Krang.Kerr(0.94), -2.6, 0.6, π / 3)
+        p32 = Krang.SlowLightIntensityPixel(Krang.Kerr(0.94f0), -2.6f0, 0.6f0, Float32(π / 3))
+        @test p32.Ip_inf_m_I0_terms ≈ p64.Ip_inf_m_I0_terms rtol = 1e-2
+        @test p32.Im_inf_m_I0_terms ≈ p64.Im_inf_m_I0_terms rtol = 1e-2
+        @test p32.Iϕ_inf ≈ p64.Iϕ_inf rtol = 1e-2
+        @test p32.It_inf ≈ p64.It_inf rtol = 1e-2
+    end
     @testset "Radial Integrals 2" begin
         a = 0.99
         met = Krang.Kerr(a)
