@@ -117,7 +117,7 @@ function Krang.generate_rays(
     pixels::AbstractMatrix{<:Krang.AbstractPixel},
     res::Int;
     A = Array,
-) 
+)
     T = typeof(Krang.metric(first(pixels)).spin)
     dims = (size(pixels)..., res)
     rays = A{Krang.Intersection{T}}(undef, dims...)

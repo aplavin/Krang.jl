@@ -16,23 +16,33 @@ end
 function translate(mesh::MeshGeometry, x, y, z)
     points = (Ref([x, y, z]) .+ mesh.geometryBasicsMesh.position)
     faces = getfield(mesh.geometryBasicsMesh, :faces)
-    return MeshGeometry(GeometryBasics.Mesh([GeometryBasics.Point(x) for x in points], faces))
+    return MeshGeometry(
+        GeometryBasics.Mesh([GeometryBasics.Point(x) for x in points], faces),
+    )
 end
 
 function scale(mesh::MeshGeometry, multiple)
     points = (multiple .* mesh.geometryBasicsMesh.position)
     faces = getfield(mesh.geometryBasicsMesh, :faces)
-    return MeshGeometry(GeometryBasics.Mesh([GeometryBasics.Point(x) for x in points], faces))
+    return MeshGeometry(
+        GeometryBasics.Mesh([GeometryBasics.Point(x) for x in points], faces),
+    )
 end
 
 function rotate(mesh::MeshGeometry, angle, x, y, z)
     angleaxis = Rotations.AngleAxis(angle, x, y, z)
     points = Ref(angleaxis) .* (mesh.geometryBasicsMesh.position)
     faces = getfield(mesh.geometryBasicsMesh, :faces)
-    return MeshGeometry(GeometryBasics.Mesh([GeometryBasics.Point(x) for x in points], faces))
+    return MeshGeometry(
+        GeometryBasics.Mesh([GeometryBasics.Point(x) for x in points], faces),
+    )
 end
 
-function raytrace(camera::AbstractCamera, mesh::Krang.Mesh{<:MeshGeometry, <:AbstractMaterial}; res = 100)
+function raytrace(
+    camera::AbstractCamera,
+    mesh::Krang.Mesh{<:MeshGeometry,<:AbstractMaterial};
+    res = 100,
+)
     mesh_geometry = mesh.geometry.geometryBasicsMesh
     material = mesh.material
     faces = begin
@@ -47,7 +57,8 @@ function raytrace(camera::AbstractCamera, mesh::Krang.Mesh{<:MeshGeometry, <:Abs
     end
     intersections = zeros(Float64, size(camera.screen.pixels))
     Threads.@threads for I in CartesianIndices(camera.screen.pixels)
-        intersections[I] = _raytrace(camera.screen.pixels[I], faces, vertices, material; res)
+        intersections[I] =
+            _raytrace(camera.screen.pixels[I], faces, vertices, material; res)
     end
     return intersections
 end
@@ -84,7 +95,9 @@ function _raytrace(
             rnew = sqrt(sum(point .^ 2))
             θnew = acos(point[3] / rnew)
             ϕnew = atan(point[2], point[1])
-            intersections += didintersect ? material(pixel, Intersection(0.0, rnew, θnew, ϕnew, νr, νθ)) : 0
+            intersections +=
+                didintersect ?
+                material(pixel, Intersection(0.0, rnew, θnew, ϕnew, νr, νθ)) : 0
         end
         origin = line_point_2
     end
