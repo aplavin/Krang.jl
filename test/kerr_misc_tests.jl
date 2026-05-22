@@ -336,12 +336,19 @@
                 end
                 @testset "radial_inf_integrals_case4 Im" begin
                     # direct Im check vs adaptive numerical integration
-                    rp = 1 + √(1 - a^2); rm = 1 - √(1 - a^2)
+                    rp = 1 + √(1 - a^2);
+                    rm = 1 - √(1 - a^2)
                     _, _, _, Im_anal = Krang.radial_inf_integrals_case4(met, roots)
-                    _, _, _, Im_s = Krang.radial_w_I0_terms_integrals_case4(met, rs, roots, τ4)
+                    _, _, _, Im_s =
+                        Krang.radial_w_I0_terms_integrals_case4(met, rs, roots, τ4)
                     Im_full_anal = Im_anal - Im_s
                     fIm(r, p) = inv((r - rm) * √(Krang.r_potential(met, ηcase4, λcase4, r)))
-                    sol_Im = solve(IntegralProblem(fIm, (rs, Inf)), HCubatureJL(); reltol=1e-10, abstol=1e-10)
+                    sol_Im = solve(
+                        IntegralProblem(fIm, (rs, Inf)),
+                        HCubatureJL();
+                        reltol = 1e-10,
+                        abstol = 1e-10,
+                    )
                     @test Im_full_anal / sol_Im.u ≈ 1.0 atol = 1e-4
                 end
             end

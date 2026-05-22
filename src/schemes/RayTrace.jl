@@ -152,7 +152,8 @@ function ϕ_kerr_schild(metric::Kerr{T}, rBL, ϕBL) where {T}
     term2 = -atan(a, rBL)
     ans = ϕBL + term1 + term2
     if isinf(ans)
-        has_metal() || @warn "ϕ_kerr_schild is inf at rs=$rBL. This usually happens if the ray intersects the horizon."
+        has_metal() ||
+            @warn "ϕ_kerr_schild is inf at rs=$rBL. This usually happens if the ray intersects the horizon."
         return ϕBL + term2
     end
     return ans
@@ -170,7 +171,8 @@ function ϕ_BL(metric::Kerr{T}, rKS, ϕKS) where {T}
     term2 = atan(a, rKS)
     ans = ϕKS + term1 + term2
     if isinf(ans)
-        has_metal() || @warn "ϕ_BL is inf at rs=$rKS. This usually happens if the ray intersects the horizon."
+        has_metal() ||
+            @warn "ϕ_BL is inf at rs=$rKS. This usually happens if the ray intersects the horizon."
         return ϕKS + term2
     end
     return ans
