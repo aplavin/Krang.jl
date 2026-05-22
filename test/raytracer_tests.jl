@@ -31,6 +31,11 @@
         @test yrat ≈ 1.0 atol = 1e-5
         @test zrat ≈ 1.0 atol = 1e-5
 
+        # ϕ_kerr_schild / ϕ_BL must return T (not Union{T, Float64}) on Float32.
+        let metf = Krang.Kerr(0.5f0)
+            @test (@inferred Float32 Krang.ϕ_kerr_schild(metf, 5.0f0, 0.0f0)) isa Float32
+            @test (@inferred Float32 Krang.ϕ_BL(metf, 5.0f0, 0.0f0)) isa Float32
+        end
     end
 
     @testset "Level Set" begin
