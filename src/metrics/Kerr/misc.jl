@@ -599,7 +599,7 @@ function Iϕ_inf_case4(metric::Kerr{T}, roots::NTuple{4}, λ) where {T}
         (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (S1p_o))
     Im =
         go / (a2 * (1 - go * x4_m)) *
-        (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (S1m_o))
+        (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_m))) * (S1m_o))
 
     return 2a / (rp - rm) * ((rp - a * λ / 2) * Ip - (rm - a * λ / 2) * Im)
 end
@@ -736,7 +736,7 @@ function Iϕ_w_I0_terms_case4(metric::Kerr{T}, rs, τ, roots::NTuple{4}, λ) whe
         (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (-S1p_s))
     Im =
         go / (a2 * (1 - go * x4_m)) *
-        (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (-S1m_s))
+        (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_m))) * (-S1m_s))
 
     return -2a / (rp - rm) * ((rp - a * λ / 2) * Ip - (rm - a * λ / 2) * Im)
 end
@@ -926,7 +926,7 @@ function It_inf_case4(metric::Kerr{T}, roots::NTuple{4}, λ) where {T}
         (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (S1p_o))
     Im_total =
         go / (a2 * (1 - go * x4_m)) *
-        (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (S1m_o))
+        (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_m))) * (S1m_o))
 
     return -(
         T(4) / (rp - rm) *
@@ -1129,7 +1129,7 @@ end
         (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (-S1p_s))
     Im_total =
         go / (a2 * (1 - go * x4_m)) *
-        (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (-S1m_s))
+        (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_m))) * (-S1m_s))
 
     return (
         4 / (rp - rm) *
@@ -1290,7 +1290,7 @@ Returns the radial integrals for the case where there are no real roots in the r
         (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1p_o)
     Imo_m_I0_terms =
         go / (a2 * (1 - go * x4_m)) *
-        (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * S1m_o)
+        (-2 / (C + D) * ((1 + go^2) / (go * (go + x4_m))) * S1m_o)
 
     return I1o_m_I0_terms, I2o_m_I0_terms, Ipo_m_I0_terms, Imo_m_I0_terms
 end
@@ -1485,7 +1485,7 @@ Returns the radial integrals for the case where there are no real roots in the r
         (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (-S1p_s))
     Im_total =
         -go / (a2 * (1 - go * x4_m)) *
-        (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_p))) * (-S1m_s))
+        (τ - 2 / (C + D) * ((1 + go^2) / (go * (go + x4_m))) * (-S1m_s))
 
     return I1_total, I2_total, Ip_total, Im_total
 end

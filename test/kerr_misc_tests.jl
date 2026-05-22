@@ -320,10 +320,10 @@
                     probϕ = IntegralProblem(fϕ, (rs, Inf))
                     solϕ = solve(probϕ, HCubatureJL(); reltol = 1e-10, abstol = 1e-10)
                     Iϕ = Krang.Iϕ(pix, rs, τ4, true)
-                    @test Iϕ / solϕ.u ≈ 1.0 atol = 2e-2
+                    @test Iϕ / solϕ.u ≈ 1.0 atol = 1e-5
                 end
                 @testset "It" begin
-                    #Regularized Time            
+                    #Regularized Time
                     ft(r, p) = -(
                         (r^2 * (r^2 - 2r + a^2) + 2r * (r^2 + a^2 - a * λcase4)) *
                         inv((r^2 - 2r + a^2) * √(r_potential(met, ηcase4, λcase4, r)))
@@ -332,7 +332,17 @@
                     solt = solve(probt, HCubatureJL(); reltol = 1e-10, abstol = 1e-10)
                     It = Krang.It(pix, rs, τ4, true)
 
-                    @test It / (solt.u + 1e6 + 2log(1e6)) ≈ 1.0 atol = 1e-2
+                    @test It / (solt.u + 1e6 + 2log(1e6)) ≈ 1.0 atol = 1e-3
+                end
+                @testset "radial_inf_integrals_case4 Im" begin
+                    # direct Im check vs adaptive numerical integration
+                    rp = 1 + √(1 - a^2); rm = 1 - √(1 - a^2)
+                    _, _, _, Im_anal = Krang.radial_inf_integrals_case4(met, roots)
+                    _, _, _, Im_s = Krang.radial_w_I0_terms_integrals_case4(met, rs, roots, τ4)
+                    Im_full_anal = Im_anal - Im_s
+                    fIm(r, p) = inv((r - rm) * √(Krang.r_potential(met, ηcase4, λcase4, r)))
+                    sol_Im = solve(IntegralProblem(fIm, (rs, Inf)), HCubatureJL(); reltol=1e-10, abstol=1e-10)
+                    @test Im_full_anal / sol_Im.u ≈ 1.0 atol = 1e-4
                 end
             end
         end
