@@ -19,7 +19,7 @@ end
 # You must include the relevant physics in the functor definition. 
 # Here we will include redshift effects associated with a zero angular momentum observer (ZAMO).
 function (m::ZAMORedshifts)(
-    pix::Krang.AbstractPixel{T},
+    pix::Krang.AbstractPixel,
     intersection::Krang.Intersection,
 ) where {T}
     (; rs, θs, νr, νθ) = intersection
@@ -33,7 +33,7 @@ function (m::ZAMORedshifts)(
     p_zamo_u = jac_zamo_u_bl_d(metric, rs, θs) * curr_p_bl_u
     redshift = inv(p_zamo_u[1])
 
-    return max(redshift, eps(T))
+    return max(redshift, eps())
 end
 
 # ## Ray tracing the material
