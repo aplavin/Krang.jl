@@ -132,10 +132,11 @@ Emission azimuth for point at Mino time τ whose image appears at screen coordin
     met = metric(pix)
     θo = inclination(pix)
 
-    α, _ = pix.screen_coordinate
+    α, β = pix.screen_coordinate
     λtemp = λ(pix)
     Iϕ = Krang.Iϕ(pix, rs, τ, νr)
     (isnan(Iϕ) || !isfinite(Iϕ)) && return Iϕ
+    _is_onaxis(θo) && return Iϕ + _onaxis_λGϕ_limit(α, β, cos(θo), n)
 
     Gϕtemp, _, _, _ = @inline Gϕ(pix, θs, isindir, n)
     (isnan(Gϕtemp) || !isfinite(Gϕtemp)) && return Iϕ
@@ -229,7 +230,7 @@ Ray trace a point that appears at the screen coordinate (`α`, `β`) for an obse
 
     Gϕtemp, _, _, _, _ = @inline Gϕ(pix, θs, isindir, n)
 
-    emission_azimuth = (Iϕ + λtemp * Gϕtemp)
+    emission_azimuth = Iϕ + (_is_onaxis(θo) ? _onaxis_λGϕ_limit(α, β, cos(θo), n) : λtemp * Gϕtemp)
 
     νθ = abs(cos(θs)) < abs(cos(θo)) ? (n % 2 == 1) ⊻ (θo > θs) : !isindir ⊻ (θs > T(π / 2))
     return rs, θs, emission_azimuth, νr, νθ, issuccess
@@ -296,7 +297,7 @@ coordinate (`α`, `β`) for an observer located at inclination θo.
     Gϕtemp, _, _, _, _ = @inline Gϕ(pix, θs, isindir, n)
     Gttemp, _, _, _, _ = @inline Gt(pix, θs, isindir, n)
 
-    emission_azimuth = (Iϕ + λtemp * Gϕtemp)
+    emission_azimuth = Iϕ + (_is_onaxis(θo) ? _onaxis_λGϕ_limit(α, β, cos(θo), n) : λtemp * Gϕtemp)
     emission_time_regularized = (zero(T) + It + a^2 * Gttemp)
 
     # is θ̇s increasing or decreasing?
@@ -349,7 +350,7 @@ Ray trace a point that appears at the screen coordinate (`α`, `β`) for an obse
     Gϕtemp, _, _, _, _ = @inline Gϕ(pix, θs, isindir, n)
     Gttemp, _, _, _, _ = @inline Gt(pix, θs, isindir, n)
 
-    emission_azimuth = (Iϕ + λtemp * Gϕtemp)
+    emission_azimuth = Iϕ + (_is_onaxis(θo) ? _onaxis_λGϕ_limit(α, β, cos(θo), n) : λtemp * Gϕtemp)
     emission_time_regularized = (It + a^2 * Gttemp)
 
     νθ = abs(cos(θs)) < abs(cos(θo)) ? (n % 2 == 1) ⊻ (θo > θs) : !isindir ⊻ (θs > T(π / 2))

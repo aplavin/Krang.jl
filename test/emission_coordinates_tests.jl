@@ -272,4 +272,27 @@
             end
         end
     end
+
+    @testset "on-axis (θ_o→0,π) geodesics" begin
+        m = Kerr(0.5)
+        pix(α, β, θd) = Krang.SlowLightIntensityPixel(m, α, β, deg2rad(θd))
+        coords(p, f) = Krang.emission_coordinates(p, f * p.total_mino_time)  # → (t,r,θ,φ,νr,νθ,ok)
+        # r,θ continuous across the pole (vortical central pixel, ρ<a)
+        p0, plim = pix(0.106, 0.106, 0.0), pix(0.106, 0.106, 1e-3)
+        _, r0, θ0, _, _, _, ok0 = coords(p0, 0.45)
+        _, rl, θl, _, _, _, _ = coords(plim, 0.45)
+        @test ok0
+        @test isapprox(r0, rl; rtol = 1e-4)
+        @test isapprox(θ0, θl; rtol = 1e-3)
+        # angular half-orbit nonzero on-axis (rejection would return 0)
+        @test Krang._absGθo_Gθhat(m, deg2rad(1e-6), Krang.η(m, 0.106, 0.106, deg2rad(1e-6)), Krang.λ(m, 0.106, deg2rad(1e-6)))[2] > 0
+        # φ continuous across θo=0 (τ samples span a pole crossing)
+        for f in (0.1, 0.45, 0.85)
+            @test isapprox(coords(pix(5.0, 2.0, 0.0), f)[4], coords(pix(5.0, 2.0, 1e-4), f)[4]; atol = 2e-3)
+        end
+        # screen azimuth not collapsed
+        @test !isapprox(coords(pix(5.0, 2.0, 0.0), 0.45)[4], coords(pix(2.0, 5.0, 0.0), 0.45)[4]; atol = 1e-6)
+        # south-pole azimuth matches its limit
+        @test isapprox(coords(pix(5.0, 2.0, 180.0), 0.45)[4], coords(pix(5.0, 2.0, 180.0 - 1e-4), 0.45)[4]; atol = 2e-3)
+    end
 end

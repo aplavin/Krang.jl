@@ -83,6 +83,16 @@ function f2(α, sinφ, j)
     )
 end
 
+# True within 0.5° of either pole (θo = acos(·) ∈ [0,π]).
+@inline _is_onaxis(θo::T) where {T} = min(θo, T(π) - θo) < deg2rad(T(0.5))
+
+# θ_o→0 limit of the λ·Gϕ azimuth term: screen azimuth plus n·π per pole crossing.
+@inline function _onaxis_λGϕ_limit(α::T, β::T, cosθo::T, n) where {T}
+    s = cosθo < zero(T) ? -one(T) : one(T)
+    σ = α < zero(T) ? -one(T) : one(T)
+    -s * atan(β, α) - T(π) / 2 - T(n) * σ * T(π)
+end
+
 function R1(α, φ, j)
     #FIXME: This function is undefined when n=1 in Pi(n, ϕ, m) and when α^2 =1
     epsT = eps(α)
@@ -1726,20 +1736,18 @@ See [`θ_potential(x)`](@ref) for an implementation of \$\\Theta(\theta)\$.
     Δθ = (1 - (ηtemp + λtemp^2) / a2) / 2
     Δθ2 = Δθ^2
     desc = √(Δθ2 + ηtemp / a2)
-    up = min(Δθ + desc, 1 - eps(T))
+    up = min(Δθ + desc, one(T))
     um = Δθ - desc
     m = up / um
     k = m
 
     #isvortical = η < 0.
     args = zero(T)
-    argo = zero(T)
     k = zero(T)
     if isvortical
         args = (cosθs^2 - um) / (up - um)
-        argo = (cosθo^2 - um) / (up - um)
         k = 1 - m
-        if (!(zero(T) < argo < 1) || !(zero(T) < args < 1))
+        if !(zero(T) < args < 1)
             return minotime, Gs, Go, Ghat, isvortical, false
         end
         tempfac = 1 / √abs(um * a2)
@@ -1747,9 +1755,8 @@ See [`θ_potential(x)`](@ref) for an implementation of \$\\Theta(\theta)\$.
         Gs = (θs > T(π / 2) ? -1 : 1) * tempfac * JacobiElliptic.F(asin(√args), k)
     else
         args = cosθs / √(up)
-        argo = cosθo / √(up)
         k = m
-        if !(-1 < args < 1) || !(-1 < argo < 1)
+        if !(-1 < args < 1)
             return zero(T), zero(T), zero(T), zero(T), isvortical, false
         end
         tempfac = 1 / √abs(um * a^2)
@@ -1779,7 +1786,7 @@ function Gs(pix::AbstractPixel, τ::T) where {T}
     Gs, isvortical = zero(T), ηtemp < zero(T)
 
     Δθ = T(0.5) * (1 - (ηtemp + λtemp^2) / a^2)
-    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), 1 - eps(T))
+    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), one(T))
     um = Δθ - √(Δθ^2 + ηtemp / a^2)
     m = up / um
     k = m
@@ -1833,20 +1840,18 @@ end
     end
 
     Δθ = (1 - (ηtemp + λtemp^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), 1 - eps(T))
+    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), one(T))
     um = Δθ - √(Δθ^2 + ηtemp / a^2)
     m = up / um
     k = m
 
     #isvortical = η < 0.
     args = zero(T)
-    argo = zero(T)
     #k = 0
     if isvortical
         args = (cos(θs)^2 - um) / (up - um)
-        argo = (cos(θo)^2 - um) / (up - um)
         k = 1 - m
-        if (!(zero(T) < argo < 1) || !(zero(T) < args < 1))
+        if !(zero(T) < args < 1)
             return ans, Gs, Go, Ghat, isvortical, false
         end
         tempfac = inv((1 - um) * √abs(um * a^2))
@@ -1855,9 +1860,8 @@ end
         Gs = ((θs > T(π / 2)) ? -1 : 1) * tempfac * JacobiElliptic.Pi(argn, asin(√args), k)
     else
         args = cos(θs) / √(up)
-        argo = cos(θo) / √(up)
         #k = abs(m)
-        if !(-1 < args < 1) || !(-1 < argo < 1)
+        if !(-1 < args < 1)
             return ans, Gs, Go, Ghat, isvortical, false
         end
         tempfac = inv(√abs(um * a^2))
@@ -1895,21 +1899,18 @@ end
     end
 
     Δθ = (1 - (ηtemp + λtemp^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), 1 - eps(T))
+    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), one(T))
     um = Δθ - √(Δθ^2 + ηtemp / a^2)
     m = up / um
     k = m
 
     #isvortical = η < 0.
     args = zero(T)
-    argo = zero(T)
     #k = 0
-    cosθo = cos(θo)
     if isvortical
         args = (cos(θs)^2 - um) / (up - um)
-        argo = (cosθo^2 - um) / (up - um)
         k = 1 - m
-        if (!(zero(T) < argo < 1) || !(zero(T) < args < 1))
+        if !(zero(T) < args < 1)
             return ans, Gs, Go, Ghat, isvortical, false
         end
         tempfac = √abs(um / a^2)
@@ -1918,9 +1919,8 @@ end
 
     else
         args = cos(θs) / √(up)
-        argo = cosθo / √(up)
         #k = abs(m)
-        if !(-1 < args < 1) || !(-1 < argo < 1)
+        if !(-1 < args < 1)
             return ans, Gs, Go, Ghat, isvortical, false
         end
         tempfac = -2 * up * inv(√abs(um * a^2))
@@ -1949,7 +1949,7 @@ end
     Δθ = (1 - (η + λ^2) / a2) / 2
     Δθ2 = Δθ^2
     desc = √max(Δθ2 + η / a2, zero(T))
-    up = min(Δθ + desc, 1 - eps(T))
+    up = min(Δθ + desc, one(T))
     um = Δθ - desc
     m = up / um
     k = m
@@ -1959,20 +1959,14 @@ end
 
     cosθo = cos(θo)
     if isvortical
-        argo = (cosθo^2 - um) / (up - um)
+        argo = clamp((cosθo^2 - um) / (up - um), zero(T), one(T))
         k = 1 - m
-        if (!(zero(T) < argo < 1))
-            return Go, Ghat
-        end
         tempfac = 1 / √abs(um * a2)
         Go = tempfac * JacobiElliptic.F(asin(√argo), k)
         Ghat = 2 * tempfac * JacobiElliptic.K(k)
     else
-        argo = cosθo / √(up)
+        argo = clamp(cosθo / √(up), -one(T), one(T))
         k = m
-        if !(-1 < argo < 1)
-            return Go, Ghat
-        end
         tempfac = 1 / √abs(um * a^2)
         Go = tempfac * JacobiElliptic.F(asin(argo), k)
         Ghat = 2 * tempfac * JacobiElliptic.K(k)
@@ -1987,7 +1981,7 @@ end
     Go, Ghat, isvortical = zero(T), zero(T), η < zero(T)
 
     Δθ = (1 - (η + λ^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + η / a^2), 1 - eps(T))
+    up = min(Δθ + √(Δθ^2 + η / a^2), one(T))
     um = Δθ - √(Δθ^2 + η / a^2)
     m = up / um
     k = m
@@ -1997,21 +1991,15 @@ end
     #k = 0
     cosθo = cos(θo)
     if isvortical
-        argo = (cosθo^2 - um) / (up - um)
+        argo = clamp((cosθo^2 - um) / (up - um), zero(T), one(T))
         k = 1 - m
-        if (!(zero(T) < argo < 1))
-            return Go, Ghat
-        end
         tempfac = inv((1 - um) * √abs(um * a^2))
         argn = (up - um) / (1 - um)
         Go = tempfac * JacobiElliptic.Pi(argn, asin(√argo), k)
         Ghat = 2tempfac * JacobiElliptic.Pi(argn, k)
     else
-        argo = cosθo / √(up)
+        argo = clamp(cosθo / √(up), -one(T), one(T))
         #k = abs(m)
-        if !(-1 < argo < 1)
-            return Go, Ghat
-        end
         tempfac = inv(√abs(um * a^2))
 
         Go = tempfac * JacobiElliptic.Pi(up, asin(argo), k)
@@ -2026,7 +2014,7 @@ end
     Go, Ghat, isvortical = zero(T), zero(T), η < zero(T)
 
     Δθ = (1 - (η + λ^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + η / a^2), 1 - eps(T))
+    up = min(Δθ + √(Δθ^2 + η / a^2), one(T))
     um = Δθ - √(Δθ^2 + η / a^2)
     m = up / um
     k = m
@@ -2036,21 +2024,15 @@ end
     #k = 0
     cosθo = cos(θo)
     if isvortical
-        argo = (cosθo^2 - um) / (up - um)
+        argo = clamp((cosθo^2 - um) / (up - um), zero(T), one(T))
         k = 1 - m
-        if (!(zero(T) < argo < 1))
-            return Go, Ghat
-        end
         tempfac = √abs(um / a^2)
         Go = tempfac * JacobiElliptic.E(asin(√argo), k)
         Ghat = 2tempfac * JacobiElliptic.E(k)
 
     else
-        argo = cosθo / √(up)
+        argo = clamp(cosθo / √(up), -one(T), one(T))
         #k = abs(m)
-        if !(-1 < argo < 1)
-            return Go, Ghat
-        end
         tempfac = -2 * up * inv(√abs(um * a^2))
         Go =
             tempfac * (JacobiElliptic.E(asin(argo), k) - JacobiElliptic.F(asin(argo), k)) /
