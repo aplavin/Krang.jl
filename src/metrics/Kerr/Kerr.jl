@@ -65,12 +65,16 @@ Inverse Kerr metric in Boyer Lindquist (BL) coordinates.
     Σt = Σ(metric, r, θ)
     ωt = ω(metric, r, θ; Ξ = Ξt)
     z = zero(T)
+    # csc²θ = ∞ at the poles (BL coordinate singularity). The g^{ϕϕ} entry is only ever
+    # contracted with p_ϕ=λ, which is 0 for a pole-reaching geodesic; regularize the entry
+    # to that λ-contracted limit (finite) — it is NOT the bare metric component there.
+    csc2 = iszero(sin(θ)) ? zero(T) : csc(θ)^2
 
     return @SMatrix [ #Eq 1 2105.09440
         -Ξt/(Σt*Δt) z z -Ξt*ωt/(Σt*Δt)
         z Δt/Σt z z
         z z inv(Σt) z
-        -Ξt*ωt/(Σt*Δt) z z Σt*csc(θ)^2/Ξt-Ξt*ωt^2/(Σt*Δt)
+        -Ξt*ωt/(Σt*Δt) z z Σt*csc2/Ξt-Ξt*ωt^2/(Σt*Δt)
     ]
 end
 

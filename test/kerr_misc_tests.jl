@@ -10,6 +10,17 @@
     @test θ_potential(met, ηtemp, λtemp, π / 4) ≈ β(met, λtemp, ηtemp, π / 4)^2
     @test α(met, λtemp, π / 4) ≈ -λtemp / sin(π / 4)
 
+    @testset "pole (θ=0,π) regularization" begin
+        # λ=0 geodesics reach the pole; the azimuthal 1/sin²θ terms must stay finite there
+        for θp in (0.0, Float64(π))
+            @test isfinite(θ_potential(met, ηtemp, 0.0, θp))
+            @test all(isfinite, Krang.metric_uu(met, 5.0, θp))
+            @test all(isfinite, Krang.p_bl_d(met, 5.0, θp, ηtemp, 0.0, true, false))
+        end
+        # off-pole behaviour unchanged (sanity)
+        @test θ_potential(met, ηtemp, λtemp, π/4) ≈ ηtemp + met.spin^2*cos(π/4)^2 - λtemp^2*cot(π/4)^2
+    end
+
     ssmet = Kerr(0.0)
     @test r_potential(ssmet, 27.0, 0.0, 5.0) ≈ 5.0 * (5.0 - 3.0) * (5.0 - 3.0) * (5.0 + 6.0)
     @test maximum(

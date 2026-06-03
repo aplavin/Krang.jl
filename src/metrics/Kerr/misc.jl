@@ -264,7 +264,10 @@ Theta potential of a Kerr black hole
 """
 function θ_potential(metric::Kerr, η, λ, θ)
     a = metric.spin
-    return η + a^2 * cos(θ)^2 - λ^2 * cot(θ)^2
+    # cot²θ = ∞ at the poles, reached only by λ=0 geodesics where λ²cot²θ vanishes;
+    # keep the 0·∞ at 0 rather than NaN.
+    cot2 = iszero(sin(θ)) ? zero(θ) : cot(θ)^2
+    return η + a^2 * cos(θ)^2 - λ^2 * cot2
 end
 
 ##----------------------------------------------------------------------------------------------------------------------
