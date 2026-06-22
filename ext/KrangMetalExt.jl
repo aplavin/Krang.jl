@@ -6,6 +6,16 @@ Krang.has_metal() = true
 
 @inline _complex_inv(z::ComplexF32) = conj(z) / abs2(z)
 @inline _complex_cbrt(z::ComplexF32) = abs(z)^(1.0f0/3) * cis(angle(z) / 3.0f0)
+# Throw-free complex sqrt: Base sqrt(::Complex) routes through ssqs, whose Metal
+# override calls exponent() -> device throw. hypot gives |z| with no scaling branch.
+@inline function _complex_sqrt(z::ComplexF32)
+    x, y = reim(z)
+    (x == 0) & (y == 0) && return complex(zero(x), y)
+    r = hypot(x, y)
+    ξ = sqrt((r + abs(x)) / 2)
+    η = y / (2ξ)
+    x >= 0 ? complex(ξ, η) : complex(abs(η), copysign(ξ, y))
+end
 
 @inline function _argmax_real3(x1, x2, x3)
     if real(x1) >= real(x2)
@@ -27,7 +37,7 @@ function Krang.get_radial_roots(metric::Krang.Kerr{T}, η::T, λ::T) where {T<:F
     Q = -A / T(3) * (A * A / T(36) + zero(T)im - C) - B^2 / T(8)
 
     negΔ3 = T(4) * P * P * P + T(27) * (Q^2)
-    ωp = _complex_cbrt(-Q / T(2) + sqrt(negΔ3 / T(108)) + zero(T)im)
+    ωp = _complex_cbrt(-Q / T(2) + _complex_sqrt(negΔ3 / T(108)) + zero(T)im)
 
     #C = ((-1+0im)^(2/3), (-1+0im)^(4/3), 1) .* ωp
     C = (-T(1 / 2) + (√T(3) / 2)im, -T(1 / 2) - T(√T(3) / 2)im, one(T) + zero(T)im) .* ωp
@@ -38,11 +48,11 @@ function Krang.get_radial_roots(metric::Krang.Kerr{T}, η::T, λ::T) where {T<:F
     ξ02 = 2ξ0
 
     predet1 = A2 + ξ02
-    predet2 = (sqrt(T(2)) * B) * _complex_inv(sqrt(ξ0))
-    det1 = sqrt(-(predet1 - predet2))
-    det2 = sqrt(-(predet1 + predet2))
+    predet2 = (sqrt(T(2)) * B) * _complex_inv(_complex_sqrt(ξ0))
+    det1 = _complex_sqrt(-(predet1 - predet2))
+    det2 = _complex_sqrt(-(predet1 + predet2))
 
-    sqrtξ02 = sqrt(ξ02)
+    sqrtξ02 = _complex_sqrt(ξ02)
 
     r1 = (-sqrtξ02 - det1) / 2
     r2 = (-sqrtξ02 + det1) / 2
