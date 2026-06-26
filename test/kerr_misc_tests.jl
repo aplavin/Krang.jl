@@ -194,6 +194,20 @@
         @test p32.Iϕ_inf ≈ p64.Iϕ_inf rtol = 1e-2
         @test p32.It_inf ≈ p64.It_inf rtol = 1e-2
     end
+    @testset "Case 3 _R1_alpha_combined: R≤0 removable-singularity limit" begin
+        # _R1_alpha_combined = 2·r21·√AB·(S·f1 − D·Π)/R is a 0/0 as R = 4·A·B·r1·r2 → 0
+        # (n_α = S²/R → ∞ ⇒ Pi(Inf)=NaN). For R ≤ 0 it must take the closed-form L'Hôpital limit.
+        f(r2) = Krang._R1_alpha_combined(2.0, 3.0, 1.0, r2, 5.0, 1.0, 0.5)
+        lim = f(0.0)
+        @test isfinite(lim)                       # R = 0 exactly → limit (was NaN: Pi(Inf))
+        @test isfinite(f(-1e-5))                  # R < 0 → limit
+        @test isfinite(f(-1e-3))
+        # Seamless branch: the singular form (R > 0) converges to the R = 0 limit at O(R).
+        @test isapprox(f(1e-6), lim; rtol = 1e-3)
+        @test isapprox(f(1e-5), lim; rtol = 1e-2)
+        # Float32 at exactly R = 0 (the regime where the bug bites) is finite.
+        @test isfinite(Krang._R1_alpha_combined(2.0f0, 3.0f0, 1.0f0, 0.0f0, 5.0f0, 1.0f0, 0.5f0))
+    end
     @testset "Radial Integrals 2" begin
         a = 0.99
         met = Krang.Kerr(a)

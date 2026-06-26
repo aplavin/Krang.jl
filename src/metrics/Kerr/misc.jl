@@ -113,14 +113,40 @@ end
     S = B * r2 + A * r1
     D = B * r2 - A * r1
     R = 4 * AB * r1 * r2
-    n_α = S * S / R + eps(T)
     sinφ = sin(φ)
     tempsinφ = √(one(T) - j * sinφ * sinφ)
-    p1_α = √abs(R / (j * D * D + (one(T) - j) * S * S))
+    # Removable singularity at R → 0: there n_α = S²/R → ∞ and Π hits its pole, so the combined
+    # product is a 0/0. R is physically ≥ 0 here (R = 4ABr1r2 ∝ the radial potential at the horizon
+    # root, a perfect square); Float32 catastrophic cancellation can round it to exactly 0 (⇒
+    # Pi(Inf)=NaN) or slightly negative near that locus. Take the closed-form L'Hôpital limit for
+    # R ≤ 0 — with ts = tempsinφ/sinφ and F, E the incomplete elliptic integrals at φ:
+    #   C1 → 2·r21·√AB·[ ts/S − (D/S²)·( cosφ·ts − (F − E) ) ].
+    if R ≤ zero(T)
+        cosφ = cos(φ)
+        Fv = JacobiElliptic.F(φ, j)
+        Ev = JacobiElliptic.E(φ, j)
+        ts = tempsinφ / sinφ
+        return 2 * r21 * sqrtAB * (ts / S - (D / (S * S)) * (cosφ * ts - (Fv - Ev)))
+    end
+    # R > 0: the singular form is accurate (Pi's large-n asymptotic stays finite for any finite
+    # n_α; only n_α = Inf at R = 0 fails, handled above). The `+ eps(T)` on n_α is load-bearing:
+    # mathematically n_α = 1 + D²/R > 1 (S²−D²=R), but R is formed directly, so in F32 S²/R rounds
+    # to *exactly* 1.0 — the Π pole — when D²/R underflows (small D, large R). Pi(1,φ,m) is Inf at
+    # φ=π/2 and wrong-branch for φ>π/2; +eps nudges n_α to the correct n>1⁺ branch (matching F64,
+    # where S²/R stays just above 1). NOT a D=0 / 0·∞ guard — D is bounded away from 0.
+    n_α = S * S / R + eps(T)
+    p1_α = √(R / (j * D * D + (one(T) - j) * S * S))
     f1_α = (p1_α / 2) * log(abs((p1_α * tempsinφ + sinφ) / (p1_α * tempsinφ - sinφ)))
     Π = JacobiElliptic.Pi(n_α, φ, j)
     return 2 * r21 * sqrtAB * (S * f1_α - D * Π) / R
 end
+
+# Case-3 Jacobi modulus k3 = ((A+B)² − r21²)/(4AB). Mathematically ∈ [0, 1], but on the
+# photon-sphere separatrix (case-2/3 boundary, where r3,r4 are a near-real complex pair) Float32
+# rounding can push it to 1.0000001 > 1, where JacobiElliptic.K/F/E/Pi(m>1) return NaN/garbage
+# (⇒ negative total_mino_time ⇒ kernel early-exit ⇒ black pixel). Clamp to the largest modulus < 1.
+@inline _case3_modulus(A::T, B::T, r21::T) where {T} =
+    min(((A + B)^2 - r21^2) / (4 * A * B), prevfloat(one(T)))
 
 function R2(α, φ, j)
     #FIXME: This function is undefined when α*cos(φ) = 1
@@ -383,7 +409,7 @@ function Ir_inf_case3(::Kerr, roots::NTuple{4})
     B2 = abs(r31 * r41)
     A, B = √A2, √B2
 
-    k3 = ((A + B)^2 - r21^2) / (4 * A * B)
+    k3 = _case3_modulus(A, B, r21)
     coef = 1 * √inv(A * B)
     return coef * JacobiElliptic.F((acos(clamp((A - B) / (A + B), -1, 1))), k3)
 
@@ -453,7 +479,7 @@ function Ir_s_case3(::Kerr, rs, roots::NTuple{4})
     B2 = real(r31 * r41)
     A, B = √A2, √B2
 
-    k3 = ((A + B)^2 - r21^2) / (4 * A * B)
+    k3 = _case3_modulus(A, B, r21)
     temprat = B * (rs - r2) / (A * (rs - r1))
     x3_s = clamp(((1 - temprat) / (1 + temprat)), -1, 1)
     coef = 1 * √inv(A * B)
@@ -565,7 +591,7 @@ function Iϕ_inf_case3(metric::Kerr{T}, roots::NTuple{4}, λ) where {T}
     end
     A, B = √A2, √B2
 
-    k3 = ((A + B)^2 - r21^2) / (4 * A * B)
+    k3 = _case3_modulus(A, B, r21)
 
     x3_o = clamp((A - B) / (A + B), -1, 1)
     φ_o = acos(x3_o)
@@ -700,7 +726,7 @@ function Iϕ_w_I0_terms_case3(metric::Kerr{T}, rs, τ, roots::NTuple{4}, λ) whe
     end
     A, B = √A2, √B2
 
-    k3 = ((A + B)^2 - r21^2) / (4 * A * B)
+    k3 = _case3_modulus(A, B, r21)
 
     temprat = B * (rs - r2) * real(inv(A * (rs - r1)))
     x3_s = clamp(((1 - temprat) * real(inv(1 + temprat))), -1, 1)
@@ -849,7 +875,7 @@ function It_inf_case3(metric::Kerr{T}, roots::NTuple{4}, λ) where {T}
     end
     A, B = √A2, √B2
 
-    k3 = real(((A + B)^2 - r21^2) / (4 * A * B))
+    k3 = _case3_modulus(A, B, r21)   # A, B, r21 are real here (the A2<0/B2<0 guard above early-returns)
 
     x3_o = min((A - B) / (A + B), 1)
     φ_o = acos(x3_o)
@@ -1066,7 +1092,7 @@ end
     end
     A, B = √A2, √B2
 
-    k3 = real(((A + B)^2 - r21^2) / (4 * A * B))
+    k3 = _case3_modulus(A, B, r21)   # A, B, r21 are real here (the A2<0/B2<0 guard above early-returns)
 
     temprat = B * (rs - r2) * inv(A * (rs - r1))
     x3_s = clamp(real(((1 - temprat) * inv(1 + temprat))), -1, 1)
@@ -1234,7 +1260,7 @@ Returns the radial integrals for the case where there are two real roots in the 
     A2 = real(r32 * r42)
     B2 = real(r31 * r41)
     A, B = √A2, √B2
-    k3 = ((A + B)^2 - r21^2) / (4 * A * B)
+    k3 = _case3_modulus(A, B, r21)
 
     αo = (B + A) / (B - A)
 
@@ -1420,7 +1446,7 @@ Returns the radial integrals for the case where there are two real roots in the 
     A2 = real(r32 * r42)
     B2 = real(r31 * r41)
     A, B = √A2, √B2
-    k3 = ((A + B)^2 - r21^2) / (4 * A * B)
+    k3 = _case3_modulus(A, B, r21)
     temprat = B * (rs - r2) * inv(A * (rs - r1))
     x3_s = real((1 - temprat) * inv(1 + temprat))
 
@@ -1633,7 +1659,7 @@ end
     fo = I0_inf(pix)
     A = √abs(r32 * r42)
     B = √abs(r31 * r41)
-    k = (((A + B)^2 - r21^2) / (4 * A * B))
+    k = _case3_modulus(A, B, r21)
     temprat = B * (rh - r2) / (A * (rh - r1))
     x3_s = clamp(((1 - temprat) / (1 + temprat)), -1, 1)
     coef = 1 * √inv(A * B)
