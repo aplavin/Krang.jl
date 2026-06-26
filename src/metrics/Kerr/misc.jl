@@ -155,6 +155,20 @@ end
 # sum is already accurate. Callers still clamp up at the pole via min(up, 1).
 @inline _uplus(Δθ::T, disc::T, ηa2::T) where {T} = Δθ < zero(T) ? ηa2 / (disc - Δθ) : Δθ + disc
 
+# Accurate Jacobi cn/sn/sc for the radial inversions (_rs_case*) and the fast-path Jacobi init near unit
+# modulus. JacobiElliptic's default (Carlson) computes these via cos/sin(am); `am` switches to the A&S
+# 16.15.4 small-u asymptotic when 1-m < √eps(T). In Float32 that threshold (≈3.4e-4) is reached at the
+# photon ring (m≈1), where the asymptotic is invalid for the moderate argument (u~10) hit at large r →
+# cn/sn off by ~0.01-0.05, which the rs = num/den inversion amplifies (den→0) into a 30-60% radius error.
+# Fukushima folds correctly; the guard — Carlson's own _am branch condition — keeps the common small-m
+# path, and all of Float64, on Carlson and bit-identical.
+@inline _cn_acc(u::T, m::T) where {T} =
+    (one(T) - m) < sqrt(eps(T)) ? JacobiElliptic.cn(JacobiElliptic.Fukushima(), u, m) : JacobiElliptic.cn(u, m)
+@inline _sn_acc(u::T, m::T) where {T} =
+    (one(T) - m) < sqrt(eps(T)) ? JacobiElliptic.sn(JacobiElliptic.Fukushima(), u, m) : JacobiElliptic.sn(u, m)
+@inline _sc_acc(u::T, m::T) where {T} =
+    (one(T) - m) < sqrt(eps(T)) ? JacobiElliptic.sc(JacobiElliptic.Fukushima(), u, m) : JacobiElliptic.sc(u, m)
+
 function R2(α, φ, j)
     #FIXME: This function is undefined when α*cos(φ) = 1
     epsT = eps(α)
@@ -1652,7 +1666,7 @@ end
     if τ > 2fo
         return err_return
     end
-    sn = r41 * JacobiElliptic.sn(X2, k)^2
+    sn = r41 * _sn_acc(X2, k)^2
     return (r31 * r4 - r3 * sn) / (r31 - sn), X2 > zero(T), true
 end
 
@@ -1677,7 +1691,7 @@ end
     if X3 < zero(T)
         return err_return
     end
-    cn = JacobiElliptic.cn(X3, k)
+    cn = _cn_acc(X3, k)
     num = -A * r1 + B * r2 + (A * r1 + B * r2) * cn
     den = -A + B + (A + B) * cn
 
@@ -1705,8 +1719,9 @@ end
     τ > (fo - Ir_s) && return (T(Inf), false, false)
 
     X4 = (C + D) / T(2) * (fo - τ)
-    num = go - JacobiElliptic.sc(X4, k4)
-    den = 1 + go * JacobiElliptic.sc(X4, k4)
+    sc = _sc_acc(X4, k4)
+    num = go - sc
+    den = 1 + go * sc
 
     return -(a2 * num / den + b1), X4 > zero(T), true
 end

@@ -230,6 +230,21 @@
         # Gt-hat must be finite (RED: NaN from 0/0). Its value-correctness is the Carlson-R_D cycle.
         @test all(isfinite, p32.absGto_Gthat)
     end
+    @testset "Radial inversion _rs_case3: F32 large-r cn accuracy (Carlson _am near-unity branch)" begin
+        # At large emission radius (small Mino time) the case-3 inversion rs = num/den evaluates
+        # cn(X3, k) at a moderate argument (X3≈10.9) with near-unity modulus (k≈0.9999). The default
+        # (Carlson) cn = cos(am) takes the A&S 16.15.4 small-u asymptotic when 1-m < √eps(T); in F32
+        # that threshold is met at the photon ring but the asymptotic is invalid for X3≈10.9, so cn is
+        # off ~0.014 and the small den = −A+B+(A+B)cn amplifies it ~3× → rs ≈ 320 vs the true ≈100.
+        # _cn_acc folds correctly (Fukushima) only in that regime, keeping the common path bit-identical.
+        p64 = Krang.SlowLightIntensityPixel(Kerr(0.7), -1.6, 4.3658, π / 4)
+        p32 = Krang.SlowLightIntensityPixel(Kerr(0.7f0), -1.6f0, 4.3658f0, Float32(π / 4))
+        rh64 = 1 + sqrt(1 - 0.7^2)
+        r64 = Krang._rs_case3(p64, rh64, 0.01)[1]
+        r32 = Krang._rs_case3(p32, Float32(rh64), 0.01f0)[1]
+        @test r32 ≈ r64 rtol = 1e-2        # RED: 320 vs 100
+        @test Krang._cn_acc(10.879791f0, 0.99991f0) ≈ -0.548261 rtol = 1e-3  # F64 oracle; default cn → -0.5624
+    end
     @testset "Radial Integrals 2" begin
         a = 0.99
         met = Krang.Kerr(a)
