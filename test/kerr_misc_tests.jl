@@ -208,6 +208,28 @@
         # Float32 at exactly R = 0 (the regime where the bug bites) is finite.
         @test isfinite(Krang._R1_alpha_combined(2.0f0, 3.0f0, 1.0f0, 0.0f0, 5.0f0, 1.0f0, 0.5f0))
     end
+    @testset "θ-potential up = Δθ+√(Δθ²+η/a²): F32 catastrophic cancellation (Δθ<0)" begin
+        # Near-equatorial geodesic at low spin: |Δθ| ≫ √(η/a²), so the upper root up = Δθ + disc
+        # catastrophically cancels. In F32 up rounds to exactly 0 ⇒ k = up/um = 0, tempfac ∝ up = 0,
+        # so _absGto_Gthat does 0/0 = NaN and the Gϕ/Gθ constants collapse to wrong values. The
+        # conjugate up = (η/a²)/(disc − Δθ) — a sum of positives for Δθ<0 — is exact and cancel-free.
+        # _uplus: Δθ≥0 → direct sum (exact, the common case); Δθ<0 → conjugate.
+        @test Krang._uplus(2.0, 4.0, 12.0) == 6.0
+        let Δθ = -1.0f6, ηa2 = 7.0f0, disc = sqrt(Δθ^2 + ηa2)   # F32 disc loses ηa2 ⇒ Δθ+disc cancels
+            @test Krang._uplus(Δθ, disc, ηa2) ≈ sqrt(1.0e12 + 7.0) - 1.0e6 rtol = 1e-2  # F64 direct-form oracle
+        end
+        # End-to-end on a real pixel (spin 0.01, edge-on-ish): the F32 SlowLightIntensityPixel
+        # θ-constants must match F64 (RED before fix: up=0 ⇒ Gϕ/Gθ wrong, Gt NaN).
+        a = 0.01f0; α = -15.0f0; β = 3.5106387f0; θo = Float32(deg2rad(100))
+        p32 = Krang.SlowLightIntensityPixel(Kerr(a), α, β, θo)
+        p64 = Krang.SlowLightIntensityPixel(Kerr(Float64(a)), Float64(α), Float64(β), Float64(θo))
+        @test p32.absGϕo_Gϕhat[1] ≈ p64.absGϕo_Gϕhat[1] rtol = 1e-2
+        @test p32.absGϕo_Gϕhat[2] ≈ p64.absGϕo_Gϕhat[2] rtol = 1e-2
+        @test p32.absGθo_Gθhat[1] ≈ p64.absGθo_Gθhat[1] rtol = 1e-2
+        @test p32.absGθo_Gθhat[2] ≈ p64.absGθo_Gθhat[2] rtol = 1e-2
+        # Gt-hat must be finite (RED: NaN from 0/0). Its value-correctness is the Carlson-R_D cycle.
+        @test all(isfinite, p32.absGto_Gthat)
+    end
     @testset "Radial Integrals 2" begin
         a = 0.99
         met = Krang.Kerr(a)

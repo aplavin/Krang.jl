@@ -367,7 +367,9 @@ end
 
     Δθ = (1 - (η + λ^2) / a^2) / 2
     dsc = √(Δθ^2 + η / a^2)
-    up = Δθ + dsc
+    # stable upper root (avoids the Δθ<0 catastrophic cancellation) + clamp at the pole, matching the
+    # other θ-integral sites; the bare `Δθ + dsc` here previously lacked both.
+    up = min(_uplus(Δθ, dsc, η / a^2), one(T))
     um = Δθ - dsc
     m = up / um
     k = m

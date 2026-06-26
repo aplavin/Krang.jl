@@ -148,6 +148,13 @@ end
 @inline _case3_modulus(A::T, B::T, r21::T) where {T} =
     min(((A + B)^2 - r21^2) / (4 * A * B), prevfloat(one(T)))
 
+# Numerically-stable upper root u₊ of the θ-potential: up = Δθ + disc, disc = √(Δθ²+η/a²).
+# For Δθ<0 (near-equatorial geodesics, |Δθ| ≫ disc) this is a catastrophic cancellation — in F32 up
+# rounds toward 0, poisoning every θ-integral (Gt → 0/0 NaN; Gϕ/Gθ silently wrong). The conjugate
+# form (disc − Δθ is a sum of positives for Δθ<0) is exact and cancellation-free; for Δθ≥0 the direct
+# sum is already accurate. Callers still clamp up at the pole via min(up, 1).
+@inline _uplus(Δθ::T, disc::T, ηa2::T) where {T} = Δθ < zero(T) ? ηa2 / (disc - Δθ) : Δθ + disc
+
 function R2(α, φ, j)
     #FIXME: This function is undefined when α*cos(φ) = 1
     epsT = eps(α)
@@ -1765,7 +1772,7 @@ See [`θ_potential(x)`](@ref) for an implementation of \$\\Theta(\theta)\$.
     Δθ = (1 - (ηtemp + λtemp^2) / a2) / 2
     Δθ2 = Δθ^2
     desc = √(Δθ2 + ηtemp / a2)
-    up = min(Δθ + desc, one(T))
+    up = min(_uplus(Δθ, desc, ηtemp / a2), one(T))
     um = Δθ - desc
     m = up / um
     k = m
@@ -1815,8 +1822,9 @@ function Gs(pix::AbstractPixel, τ::T) where {T}
     Gs, isvortical = zero(T), ηtemp < zero(T)
 
     Δθ = T(0.5) * (1 - (ηtemp + λtemp^2) / a^2)
-    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), one(T))
-    um = Δθ - √(Δθ^2 + ηtemp / a^2)
+    disc = √(Δθ^2 + ηtemp / a^2)
+    up = min(_uplus(Δθ, disc, ηtemp / a^2), one(T))
+    um = Δθ - disc
     m = up / um
     k = m
 
@@ -1869,8 +1877,9 @@ end
     end
 
     Δθ = (1 - (ηtemp + λtemp^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), one(T))
-    um = Δθ - √(Δθ^2 + ηtemp / a^2)
+    disc = √(Δθ^2 + ηtemp / a^2)
+    up = min(_uplus(Δθ, disc, ηtemp / a^2), one(T))
+    um = Δθ - disc
     m = up / um
     k = m
 
@@ -1928,8 +1937,9 @@ end
     end
 
     Δθ = (1 - (ηtemp + λtemp^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + ηtemp / a^2), one(T))
-    um = Δθ - √(Δθ^2 + ηtemp / a^2)
+    disc = √(Δθ^2 + ηtemp / a^2)
+    up = min(_uplus(Δθ, disc, ηtemp / a^2), one(T))
+    um = Δθ - disc
     m = up / um
     k = m
 
@@ -1978,7 +1988,7 @@ end
     Δθ = (1 - (η + λ^2) / a2) / 2
     Δθ2 = Δθ^2
     desc = √max(Δθ2 + η / a2, zero(T))
-    up = min(Δθ + desc, one(T))
+    up = min(_uplus(Δθ, desc, η / a2), one(T))
     um = Δθ - desc
     m = up / um
     k = m
@@ -2010,8 +2020,9 @@ end
     Go, Ghat, isvortical = zero(T), zero(T), η < zero(T)
 
     Δθ = (1 - (η + λ^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + η / a^2), one(T))
-    um = Δθ - √(Δθ^2 + η / a^2)
+    disc = √(Δθ^2 + η / a^2)
+    up = min(_uplus(Δθ, disc, η / a^2), one(T))
+    um = Δθ - disc
     m = up / um
     k = m
 
@@ -2043,8 +2054,9 @@ end
     Go, Ghat, isvortical = zero(T), zero(T), η < zero(T)
 
     Δθ = (1 - (η + λ^2) / a^2) / T(2)
-    up = min(Δθ + √(Δθ^2 + η / a^2), one(T))
-    um = Δθ - √(Δθ^2 + η / a^2)
+    disc = √(Δθ^2 + η / a^2)
+    up = min(_uplus(Δθ, disc, η / a^2), one(T))
+    um = Δθ - disc
     m = up / um
     k = m
 

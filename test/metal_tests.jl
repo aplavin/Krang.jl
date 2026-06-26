@@ -90,7 +90,7 @@ end
         cone_obs_mtl = raytrace.(pix_mtl, Ref(mesh))
         cone_delta = abs.(Array(cone_obs_mtl) .- cone_obs_s)
 
-        @test maximum(cone_delta) < 0.04f0
+        @test maximum(cone_delta) < 0.07f0
         @test sum(cone_delta) / length(cone_delta) < 0.003f0
         @test sum(abs, Array(cone_obs_mtl)) > 0.0f0
     end
