@@ -93,6 +93,29 @@ end
     -s * atan(β, α) - T(π) / 2 - T(n) * σ * T(π)
 end
 
+# Legendre Π(n;φ|m) via Carlson with caller-supplied cos²φ and p = 1−n·sin²φ.
+# Exact complement forms avoid the 1-x cancellations of the Legendre API when n→1.
+@inline function _Pi_stable(n::T, m::T, sinφ::T, cos2φ::T, p::T) where {T}
+    y = one(T) - m * sinφ * sinφ
+    drf, _ = JacobiElliptic.CarlsonAlg.DRF(cos2φ, y, one(T))
+    drj, _ = JacobiElliptic.CarlsonAlg.DRJ(cos2φ, y, one(T), p)
+    sinφ * (drf + (n / 3) * sinφ * sinφ * drj)
+end
+
+# λ·Gϕ limit for a pole-grazing pixel (off-axis observer): π per axis crossing,
+# crossings passed by Mino time = n + isindir. Sign is irrelevant mod 2π.
+@inline _pole_λGϕ_limit(::Type{T}, n, isindir) where {T} = (n + isindir) * T(π)
+
+# True when 1-up = λ²/(a²(1-um)) is below the Carlson-RJ resolution (≈eps²): the geodesic
+# grazes the pole within roundoff and the λ·Gϕ limit is exact to O(λ). In this window the
+# limit and the direct product agree to machine precision, so the exact cutoff is uncritical.
+@inline function _is_pole_grazing(metric::Kerr{T}, η, λ) where {T}
+    a2 = metric.spin^2
+    Δθ = (1 - (η + λ^2) / a2) / 2
+    um = Δθ - √(Δθ^2 + η / a2)
+    λ^2 / (a2 * (1 - um)) < 1024 * eps(T)^2
+end
+
 function R1(α, φ, j)
     #FIXME: This function is undefined when n=1 in Pi(n, ϕ, m) and when α^2 =1
     epsT = eps(α)
@@ -1895,30 +1918,32 @@ end
     disc = √(Δθ^2 + ηtemp / a^2)
     up = min(_uplus(Δθ, disc, ηtemp / a^2), one(T))
     um = Δθ - disc
+    one_m_up = λtemp^2 / (a^2 * (1 - um))   # (1-up)(1-um) = λ²/a² exactly
     m = up / um
-    k = m
 
-    #isvortical = η < 0.
-    args = zero(T)
-    #k = 0
+    cosθs = cos(θs)
+    sinθs2 = (1 - cosθs) * (1 + cosθs)
     if isvortical
-        args = (cos(θs)^2 - um) / (up - um)
+        args = (cosθs^2 - um) / (up - um)
         k = 1 - m
         if !(zero(T) < args < 1)
             return ans, Gs, Go, Ghat, isvortical, false
         end
         tempfac = inv((1 - um) * √abs(um * a^2))
         argn = (up - um) / (1 - um)
+        ps = max(sinθs2, one_m_up) / (1 - um)                  # = 1 - argn·args
+        cos2φs = max(sinθs2 - one_m_up, zero(T)) / (up - um)   # = 1 - args
         Go = ((θs > T(π / 2)) ? -1 : 1) * Go
-        Gs = ((θs > T(π / 2)) ? -1 : 1) * tempfac * JacobiElliptic.Pi(argn, asin(√args), k)
+        Gs = ((θs > T(π / 2)) ? -1 : 1) * tempfac * _Pi_stable(argn, k, √args, cos2φs, ps)
     else
-        args = cos(θs) / √(up)
-        #k = abs(m)
+        args = cosθs / √(up)
         if !(-1 < args < 1)
             return ans, Gs, Go, Ghat, isvortical, false
         end
         tempfac = inv(√abs(um * a^2))
-        Gs = tempfac * JacobiElliptic.Pi(up, asin(args), k)
+        ps = max(sinθs2, one_m_up)                             # = 1 - up·args²
+        cos2φs = max(sinθs2 - one_m_up, zero(T)) / up          # = 1 - args²
+        Gs = tempfac * _Pi_stable(up, m, args, cos2φs, ps)
     end
 
     νθ = isincone ? (n % 2 == 1) ⊻ (θo > θs) : !isindir ⊻ (θs > T(π / 2))
@@ -2032,33 +2057,33 @@ end
 @inline function _absGϕo_Gϕhat(metric::Kerr{T}, θo, η, λ)::NTuple{2,T} where {T}
 
     a = metric.spin
-    Go, Ghat, isvortical = zero(T), zero(T), η < zero(T)
+    isvortical = η < zero(T)
 
     Δθ = (1 - (η + λ^2) / a^2) / T(2)
     disc = √(Δθ^2 + η / a^2)
     up = min(_uplus(Δθ, disc, η / a^2), one(T))
     um = Δθ - disc
+    one_m_up = λ^2 / (a^2 * (1 - um))   # (1-up)(1-um) = λ²/a² exactly; direct 1-up cancels at small λ
     m = up / um
-    k = m
 
-    #isvortical = η < 0.
-    argo = zero(T)
-    #k = 0
     cosθo = cos(θo)
+    sinθo2 = (1 - cosθo) * (1 + cosθo)
     if isvortical
         argo = clamp((cosθo^2 - um) / (up - um), zero(T), one(T))
         k = 1 - m
         tempfac = inv((1 - um) * √abs(um * a^2))
         argn = (up - um) / (1 - um)
-        Go = tempfac * JacobiElliptic.Pi(argn, asin(√argo), k)
-        Ghat = 2tempfac * JacobiElliptic.Pi(argn, k)
+        po = max(sinθo2, one_m_up) / (1 - um)                  # = 1 - argn·argo
+        cos2φo = max(sinθo2 - one_m_up, zero(T)) / (up - um)   # = 1 - argo
+        Go = tempfac * _Pi_stable(argn, k, √argo, cos2φo, po)
+        Ghat = 2tempfac * _Pi_stable(argn, k, one(T), zero(T), one_m_up / (1 - um))
     else
         argo = clamp(cosθo / √(up), -one(T), one(T))
-        #k = abs(m)
         tempfac = inv(√abs(um * a^2))
-
-        Go = tempfac * JacobiElliptic.Pi(up, asin(argo), k)
-        Ghat = 2tempfac * JacobiElliptic.Pi(up, k)
+        po = max(sinθo2, one_m_up)                             # = 1 - up·argo²
+        cos2φo = max(sinθo2 - one_m_up, zero(T)) / up          # = 1 - argo²
+        Go = tempfac * _Pi_stable(up, m, argo, cos2φo, po)
+        Ghat = 2tempfac * _Pi_stable(up, m, one(T), zero(T), one_m_up)
     end
 
     return Go, Ghat

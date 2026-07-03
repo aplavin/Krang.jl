@@ -295,4 +295,35 @@
         # south-pole azimuth matches its limit
         @test isapprox(coords(pix(5.0, 2.0, 180.0), 0.45)[4], coords(pix(5.0, 2.0, 180.0 - 1e-4), 0.45)[4]; atol = 2e-3)
     end
+
+    @testset "α≈0 pixel (off-axis observer): pole-crossing azimuth" begin
+        # λ = -α·sinθo → 0 geodesics cross the spin axis; φ must jump by π per crossing.
+        # Degenerate at λ=0 (λ·Gϕ = 0·∞) and, pre-fix, numerically lost well before that
+        # (1-up and the RJ p-argument cancel catastrophically).
+        wrapφ(x) = mod(x + π, 2π) - π
+        coords(p, f) = Krang.emission_coordinates(p, f * p.total_mino_time)
+        # φ(α) continuous through α=0, F32 ≡ F64: compare against a trusted-α reference
+        for T in (Float64, Float32), θod in (20.0, 60.0), β in (-5.0, 5.0)
+            pref = Krang.SlowLightIntensityPixel(Kerr(0.9), 0.05, β, deg2rad(θod))
+            for α in (0.0, 1e-6, 1e-4, 1e-3), f in (0.1, 0.35, 0.55, 0.8, 0.95)
+                p = Krang.SlowLightIntensityPixel(Kerr(T(0.9)), T(α), T(β), T(deg2rad(θod)))
+                c, cref = coords(p, T(f)), coords(pref, f)
+                (c[7] && cref[7]) || continue
+                min(c[3], π - c[3]) < 0.15 && continue  # skip the reference's own near-pole swing
+                @test abs(wrapφ(Float64(c[4]) - cref[4])) < 0.1
+            end
+        end
+        # φ jumps by ≈π across the first axis crossing (τ/τ_total: 0.305 → 0.318 spans it)
+        for T in (Float64, Float32), α in (0.0, 1e-8, 1e-6)
+            p = Krang.SlowLightIntensityPixel(Kerr(T(0.9)), T(α), T(-5.0), T(deg2rad(60)))
+            Δφ = abs(wrapφ(Float64(coords(p, T(0.318))[4] - coords(p, T(0.305))[4])))
+            @test 2.9 < Δφ < 3.4
+        end
+        # stable Π ≡ Legendre-API Π at moderate arguments (complete and incomplete)
+        let up = 0.97, um = -3.2, m = up / um
+            @test Krang._Pi_stable(up, m, 1.0, 0.0, 1 - up) ≈ Krang.JacobiElliptic.Pi(up, m) rtol = 1e-12
+            @test Krang._Pi_stable(up, m, 0.6, 1 - 0.6^2, 1 - up * 0.6^2) ≈
+                  Krang.JacobiElliptic.Pi(up, asin(0.6), m) rtol = 1e-12
+        end
+    end
 end
